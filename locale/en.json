@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Role Config",
+    "description": "Role presets and a model pool: the model delegates to a role, your rules pick the model, and a failure walks the role's chain."
+  }
+}

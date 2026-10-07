@@ -26,13 +26,27 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "external": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node build/client-bundle.mjs",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "link:dev": "node scripts/link-dev-deps.mjs"
+    "link:dev": "node scripts/link-dev-deps.mjs",
+    "build:client": "node build/client-bundle.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=0.2.0-0",

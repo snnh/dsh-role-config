@@ -20,6 +20,7 @@
     "sourceMap": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
+    "jsx": "react-jsx",
     "rootDir": "src",
     "outDir": "lib",
     "declarationDir": "lib/types"

@@ -32,10 +32,25 @@ const DSH_PACKAGES = {
   '@deepseek-ai/dsh-system-prompt': 'packages/core/system-prompt',
   '@deepseek-ai/dsh-scope': 'packages/core/scope',
   '@deepseek-ai/dsh-util-values': 'packages/util/values',
+  // Browser-half peers: the client plugins this page mounts beside.
+  '@deepseek-ai/dsh-api-remotes': 'packages/api/remotes',
+  '@deepseek-ai/dsh-client-locale': 'packages/client/locale',
+  '@deepseek-ai/dsh-client-store': 'packages/client/store',
+  '@deepseek-ai/dsh-client-ui-plugin-manager': 'packages/client/ui-plugin-manager',
+  '@deepseek-ai/dsh-client-ui-primitives': 'packages/client/ui-primitives',
+  '@deepseek-ai/dsh-client-ui-renderer': 'packages/client/ui-renderer',
+  '@deepseek-ai/dsh-client-ui-settings': 'packages/client/ui-settings',
+  '@deepseek-ai/dsh-client-ui-slots': 'packages/client/ui-slots',
 }
+
+/** React and its types live beside the client packages that declare them. */
+const REACT_PACKAGES = ['react', 'react-dom', '@types/react']
 
 /** Toolchain packages taken from the checkout's own node_modules. */
 const TOOLCHAIN = ['typescript', 'vitest', '@types/node']
+
+/** Bundler used by build/client-bundle.mjs, taken from the checkout's store. */
+const ROLldown = 'rolldown'
 
 function link(source, target) {
   rmSync(target, { recursive: true, force: true })
@@ -57,6 +72,15 @@ for (const [name, relative] of Object.entries(DSH_PACKAGES)) {
   link(source, join(root, 'node_modules', ...name.split('/')))
 }
 
+for (const name of REACT_PACKAGES) {
+  const source = join(checkout, 'packages', 'client', 'ui-primitives', 'node_modules', ...name.split('/'))
+  if (!existsSync(source)) {
+    console.error(`link-dev-deps: ${name} not present beside packages/client/ui-primitives`)
+    process.exit(1)
+  }
+  link(source, join(root, 'node_modules', ...name.split('/')))
+}
+
 for (const name of TOOLCHAIN) {
   const source = join(checkout, 'node_modules', ...name.split('/'))
   if (!existsSync(source)) {
@@ -64,6 +88,17 @@ for (const name of TOOLCHAIN) {
     process.exit(1)
   }
   link(source, join(root, 'node_modules', ...name.split('/')))
+}
+
+// rolldown ships under pnpm's content store; resolve whichever version the
+// checkout holds rather than pinning one here.
+const { readdirSync } = await import('node:fs')
+const store = join(checkout, 'node_modules', '.pnpm')
+if (existsSync(store)) {
+  const candidate = readdirSync(store).filter(name => name.startsWith('rolldown@')).sort().at(-1)
+  if (candidate !== undefined) {
+    link(join(store, candidate, 'node_modules', ROLldown), join(root, 'node_modules', ROLldown))
+  }
 }
 
 for (const binary of ['vitest', 'tsc']) {

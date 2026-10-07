@@ -31,9 +31,10 @@ A dsh bundle that gives delegation two ways in and one decision layer:
 dsh plugin --profile <profile> add github:snnh/dsh-role-config
 ```
 
-A git install runs this package's `prepare` script, which pnpm refuses until
-you allow it (`allowBuilds` in the profile's `pnpm-workspace.yaml`); nothing
-here runs at install time beyond the TypeScript build.
+The built halves (`lib/index.js`, `lib/client.js`, and their declarations) are
+committed, so a git install needs no build script and no `allowBuilds`
+permission; install it and enable the bundle. Rebuild them with
+`npm run build` after changing `src/`.
 
 ## The one prerequisite
 

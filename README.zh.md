@@ -20,7 +20,7 @@ description: "dsh 的角色预设与模型池：模型只选角色，由用户�
 dsh plugin --profile <profile> add github:snnh/dsh-role-config
 ```
 
-git 安装会运行本包的 `prepare` 脚本，pnpm 默认拒绝，需在 profile 的 `pnpm-workspace.yaml` 里用 `allowBuilds` 放行；除 TypeScript 构建外，安装期不执行任何东西。
+构建产物（`lib/index.js`、`lib/client.js` 及其声明）随仓库提交，因此 git 安装**不需要**构建脚本，也不需要 `allowBuilds` 放行；装好启用 bundle 即可。改动 `src/` 后用 `npm run build` 重新构建。
 
 ## 唯一的前置条件
 

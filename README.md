@@ -38,10 +38,11 @@ permission; install it and enable the bundle. Rebuild them with
 
 ## The one prerequisite
 
-This plugin registers its delegation tool under the official `subagent` name,
-which shadows the official tool only while that tool lives in an outer scope.
-Set `modelSelectionSettings: false` on the official `tool-subagent` row (both
-in the shipped presets and in any preset you added):
+This plugin registers its delegation tool under the official `subagent` name.
+While the plugin is enabled that routed tool is what the agent sees; disable
+the plugin and the official tool serves again. Shadowing needs the official
+tool one scope further out than the agent, so the official `tool-subagent` row
+must carry `modelSelectionSettings: false`:
 
 ```yaml
 - id: tool-subagent
@@ -51,10 +52,37 @@ in the shipped presets and in any preset you added):
     modelSelectionSettings: false
 ```
 
+A profile patch reaches the rows the profile declares. The shipped presets
+declare their own, nested inside a `cordis:group`, and a patch replaces a
+row's whole config — so restate the preset row with that one field flipped,
+the way the harness's own overlays do. `packages/bundle/web-app/presets/standard.patch.yml`
+lists the shipped plugins; refresh your copy when it changes:
+
+```yaml
+- id: preset-standard
+  config:
+    id: standard
+    order: 1
+    plugins:
+      # …the shipped plugin list, unchanged…
+      - id: delegation
+        name: cordis:group
+        group: true
+        isolate: { workflowEngine: true }
+        config:
+          - id: tool-subagent
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: spawn
+              toolName: subagent
+              modelSelectionSettings: false
+```
+
 With model selection on, the official tool registers inside every agent's own
-scope, where a same-named tool cannot exist: the plugin logs which row to fix
-and leaves the official tool in place. `delegate.toolName` renames this
-plugin's tool instead, if you would rather keep the official configuration.
+scope, where a same-named tool cannot exist. The plugin then names the row to
+fix and leaves the official tool in place, so the session still opens;
+`delegate.toolName` renames this plugin's tool instead, if you would rather
+keep the official configuration.
 
 ## Configuring over a LAN address
 

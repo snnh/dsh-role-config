@@ -24,7 +24,7 @@ dsh plugin --profile <profile> add github:snnh/dsh-role-config
 
 ## 唯一的前置条件
 
-本插件用官方 `subagent` 同名注册委派工具，只有当官方工具位于外层作用域时才能遮蔽它。请把官方 `tool-subagent` 行的 `modelSelectionSettings` 设为 `false`：
+本插件用官方 `subagent` 同名注册委派工具。插件启用时，agent 看到的就是这条可路由的工具；停用插件，官方工具随即恢复服务。遮蔽要求官方工具比 agent 更靠外一层，因此官方 `tool-subagent` 行必须带 `modelSelectionSettings: false`：
 
 ```yaml
 - id: tool-subagent
@@ -34,7 +34,29 @@ dsh plugin --profile <profile> add github:snnh/dsh-role-config
     modelSelectionSettings: false
 ```
 
-开启模型选择时，官方工具会注册进每个 agent 自己的作用域，同作用域无法存在同名工具：插件会打印需要修改的行号并保留官方工具。若你更想保留官方配置，可用 `delegate.toolName` 改本插件的工具名。
+profile patch 只能改到 profile 自己声明的行；出厂预设的行嵌在 `cordis:group` 里，而 patch 会整体替换该行 config，所以需要像 harness 自己的 overlay 那样重述预设行、只翻这一个字段（出厂清单见 `packages/bundle/web-app/presets/standard.patch.yml`，它变化时请同步这份副本）：
+
+```yaml
+- id: preset-standard
+  config:
+    id: standard
+    order: 1
+    plugins:
+      # …出厂插件清单，原样保留…
+      - id: delegation
+        name: cordis:group
+        group: true
+        isolate: { workflowEngine: true }
+        config:
+          - id: tool-subagent
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: spawn
+              toolName: subagent
+              modelSelectionSettings: false
+```
+
+开启模型选择时，官方工具会注册进每个 agent 自己的作用域，同作用域无法存在同名工具：这种情况插件会点名需要修改的行并保留官方工具，会话照常打开。若你更想保留官方配置，可用 `delegate.toolName` 改本插件的工具名。
 
 ## 在 LAN 地址上配置
 

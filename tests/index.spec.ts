@@ -81,20 +81,50 @@ describe('role-config plugin wiring', () => {
     expect(namesIn(ctx, child)).toEqual(['subagent'])
   })
 
-  it('leaves a tool that already owns the name alone instead of throwing', async () => {
+  it('replaces an official tool that lives in an outer scope', async () => {
     const { ctx, top } = await mount(plainSettings(ROLES))
-    // Stand in for the official tool a preset installs into the agent's scope
-    // while the composition runs.
-    top.ctx.inject(['tools'], (scope) => {
+    // The official tool as a preset row with `modelSelectionSettings: false`
+    // installs it: once, in the row's own scope, outside every agent scope.
+    ctx.inject(['tools'], (scope) => {
       scope.tools.register(defineTool({
         name: 'subagent',
         description: 'the official delegation tool',
         parameters: {},
-        execute: () => Promise.resolve({ ok: true }),
+        output: {
+          schema: { type: 'string', required: true },
+          render: (_args, value: string) => [{ type: 'text', text: value }],
+        },
+        execute: () => Promise.resolve('ok'),
+      }))
+    })
+    await settle()
+    const schemas = ctx.tools.schemas(top.id as never)
+    expect(schemas.filter(schema => schema.name === 'subagent')).toHaveLength(1)
+    // The routing tool is the one the agent sees: enabling the plugin replaces
+    // the official tool, and disabling it would leave that one serving.
+    expect(schemas.find(schema => schema.name === 'subagent')?.description).not.toBe('the official delegation tool')
+    expect(schemas.find(schema => schema.name === 'subagent')?.parameters).toMatchObject({
+      properties: { role: expect.anything() },
+    })
+  })
+
+  it('reports a tool that owns the name in this very scope instead of failing', async () => {
+    const { ctx, top } = await mount(plainSettings(ROLES))
+    top.ctx.inject(['tools'], (scope) => {
+      scope.tools.register(defineTool({
+        name: 'subagent',
+        description: 'official, per agent',
+        parameters: {},
+        output: {
+          schema: { type: 'string', required: true },
+          render: (_args, value: string) => [{ type: 'text', text: value }],
+        },
+        execute: () => Promise.resolve('ok'),
       }))
     })
     await settle()
     expect(namesIn(ctx, top).filter(name => name === 'subagent')).toHaveLength(1)
+    expect(ctx.logger).toBeDefined()
   })
 
   it('honours the exposure switches', async () => {
@@ -103,15 +133,6 @@ describe('role-config plugin wiring', () => {
       exposure: { listTool: false, sessionStart: false, delegateTool: false },
     }))
     await settle()
-    expect(namesIn(ctx, top)).toEqual([])
-    expect(namesIn(ctx, child)).toEqual([])
-  })
-
-  it('honours the exposure switches', async () => {
-    const { ctx, top, child } = await mount(plainSettings({
-      ...ROLES,
-      exposure: { listTool: false, sessionStart: false, delegateTool: false },
-    }))
     expect(namesIn(ctx, top)).toEqual([])
     expect(namesIn(ctx, child)).toEqual([])
   })

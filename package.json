@@ -1,0 +1,53 @@
+{
+  "name": "dsh-role-config",
+  "version": "0.1.0",
+  "description": "Role presets and a model pool for dsh: role-routed delegation with capability conditions and priority fallback",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "link:dev": "node scripts/link-dev-deps.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=0.2.0-0",
+    "@deepseek-ai/schemastery": ">=0.2.0-0",
+    "@deepseek-ai/dsh-agent": ">=0.2.0-0",
+    "@deepseek-ai/dsh-jobs": ">=0.2.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.0-0",
+    "@deepseek-ai/dsh-session": ">=0.2.0-0",
+    "@deepseek-ai/dsh-subagent": ">=0.2.0-0",
+    "@deepseek-ai/dsh-system-prompt": ">=0.2.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.0"
+  }
+}

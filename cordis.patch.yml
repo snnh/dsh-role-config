@@ -1,0 +1,12 @@
+# The dsh-role-config bundle patch: one row holding the role presets, the
+# model pool, the routing rules, and the delegation tool wiring. The Plugins
+# page edits this row's volatile fields under the id below.
+#
+# The row also speaks for the official delegation tool: while this plugin is
+# enabled it registers a same-named `subagent` tool that routes roles. That
+# shadow needs the official `tool-subagent` row to keep
+# `modelSelectionSettings: false`; the plugin logs a diagnostic when the
+# official tool is registered per agent instead (see README).
+- insert:
+    - id: role-config
+      name: dsh-role-config

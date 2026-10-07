@@ -1,13 +1,16 @@
 /**
  * dsh-role-config: role presets and a model pool for delegation.
  *
- * The plugin has two model-visible surfaces, both off until configured. A
- * listing tool answers what roles exist and which pool models the model may
- * name. A delegation tool (registered as `subagent`, shadowing the official
- * one) accepts `role` and lets the operator's routing rules pick the model.
+ * Two model-visible surfaces, both off until configured:
+ *
+ * - `list_model_roles` answers what roles exist and which pool models the
+ *   model may name. It is registered on top-level agents only: a delegated
+ *   child learns its role from the task it was handed.
+ * - The delegation tool (`subagent` by default) accepts `role` or an explicit
+ *   pool route and lets the operator's rules pick the model.
  *
  * A role's members never reach the model: the listing carries names and
- * descriptions only, and routing happens Host-side.
+ * descriptions only, and routing stays Host-side.
  *
  * @module dsh-role-config
  */
@@ -18,6 +21,10 @@ import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { LlmRuntime } from '@deepseek-ai/dsh-llm'
 import { CapabilityDirectory } from './capabilities.ts'
+import { FailoverRegistry, installFailover } from './failover.ts'
+import { collisionAdvice, findOfficialModelSelectionRows } from './official-tool.ts'
+import { DelegationPlanner } from './plan.ts'
+import { registerDelegateTool } from './tools/delegate.ts'
 import type { RoleCatalogSource } from './tools/list-model-roles.ts'
 import { registerListRolesTool } from './tools/list-model-roles.ts'
 import { Config as RoleConfigSchema, inspectRoleConfig } from './settings.ts'
@@ -82,50 +89,92 @@ export function isTopLevel(agent: Agent): boolean {
  * @param config - live configuration references.
  */
 export function apply(ctx: Context, config: Config): void {
+  /** One diagnostic, where both the operator's console and the log can see it. */
+  const warn = (message: string, ...args: unknown[]): void => {
+    ctx.logger.warn(`role-config: ${message}`, ...args)
+    // The shipped compositions mount no logger exporter, so an operator-facing
+    // diagnostic must also reach the process console.
+    console.warn(`[role-config] ${message}`, ...args)
+  }
+
   const source: RoleCatalogSource = {
     settings: () => settingsSnapshot(config),
     problems: () => inspectRoleConfig(settingsSnapshot(config)),
   }
   const llm: LlmRuntime | undefined = ctx.get('llm')
   const capabilities = new CapabilityDirectory(llm)
-  // Adapter routes come and go while the Host runs; cached capability facts
-  // must not survive that.
+  // Adapter routes come and go while the Host runs; cached facts must not
+  // survive that.
   ctx.on('llm/adapters-updated', () => {
     capabilities.invalidate()
   })
 
-  const catalogFibers = new Map<Agent, { dispose: () => Promise<void> }>()
+  const planner = new DelegationPlanner(() => settingsSnapshot(config), capabilities, llm, { warn })
+  const failover = new FailoverRegistry({ warn }, () => settingsSnapshot(config).routing.fallback)
+  installFailover(ctx, failover)
 
-  /**
-   * Bring one agent's listing tool in line with the live settings: the pool is
-   * the main agent's business, so a delegated child never gets the catalog.
-   */
-  const reconcileCatalogTool = (agent: Agent): void => {
-    const existing = catalogFibers.get(agent)
-    if (existing !== undefined) {
-      catalogFibers.delete(agent)
-      void existing.dispose().catch((error: unknown) => {
-        ctx.logger.warn(`role-config: listing tool cleanup failed: ${String(error)}`)
-      })
-    }
-    if (!isTopLevel(agent)) return
-    if (!settingsSnapshot(config).exposure.listTool) return
-    const fiber = agent.ctx.inject(['tools'], (scope) => {
-      registerListRolesTool(scope, source)
-    })
-    catalogFibers.set(agent, fiber)
+  // The shadow needs an outer-scope official tool; a colliding row is reported
+  // once, and the official tool keeps serving for this session.
+  const collisions = findOfficialModelSelectionRows(ctx, settingsSnapshot(config).delegate.toolName)
+  if (collisions.length > 0) {
+    warn(collisionAdvice(collisions, settingsSnapshot(config).delegate.toolName))
   }
 
-  for (const agent of ctx.agents.list()) reconcileCatalogTool(agent)
+  const installed = new Map<Agent, { catalog?: { dispose: () => Promise<void> }; delegate?: { dispose: () => Promise<void> } }>()
+
+  const reconcile = (agent: Agent): void => {
+    const previous = installed.get(agent)
+    if (previous !== undefined) {
+      installed.delete(agent)
+      for (const fiber of [previous.catalog, previous.delegate]) {
+        if (fiber === undefined) continue
+        void fiber.dispose().catch((error: unknown) => {
+          warn('tool cleanup failed: %s', error)
+        })
+      }
+    }
+    const settings = settingsSnapshot(config)
+    const entry: { catalog?: { dispose: () => Promise<void> }; delegate?: { dispose: () => Promise<void> } } = {}
+    if (isTopLevel(agent) && settings.exposure.listTool) {
+      entry.catalog = agent.ctx.inject(['tools'], (scope) => {
+        registerListRolesTool(scope, source)
+      })
+    }
+    if (settings.exposure.delegateTool && collisions.length === 0) {
+      entry.delegate = agent.ctx.inject(['tools', 'subagents'], (scope) => {
+        try {
+          registerDelegateTool(scope, {
+            settings: () => settingsSnapshot(config),
+            planner,
+            failover,
+            warn: (message: string) => { warn(message) },
+          })
+        } catch (error: unknown) {
+          // A duplicate name means another plugin owns `subagent` in this very
+          // scope; say which knob fixes it and leave that tool in place.
+          warn(
+            'could not register the delegation tool for agent %s: %s. Set delegate.toolName to another name '
+            + 'or remove the colliding tool.',
+            agent.id,
+            error instanceof Error ? error.message : String(error),
+          )
+        }
+      })
+    }
+    if (entry.catalog !== undefined || entry.delegate !== undefined) installed.set(agent, entry)
+  }
+
+  for (const agent of ctx.agents.list()) reconcile(agent)
   ctx.on('agent/created', ({ agent }) => {
-    reconcileCatalogTool(agent)
+    reconcile(agent)
   })
   ctx.on('agent/disposed', ({ agent }) => {
-    catalogFibers.delete(agent)
+    installed.delete(agent)
+    failover.forget(agent)
   })
-  // A settings write must not need a remount: the tool toggles with its flag.
+  // A settings write must not need a remount: both tools follow their flags.
   ctx.on('loader/volatile-update', () => {
-    for (const agent of ctx.agents.list()) reconcileCatalogTool(agent)
+    for (const agent of ctx.agents.list()) reconcile(agent)
   })
 
   ctx.logger.info('role-config: mounted')

@@ -31,6 +31,7 @@ const DSH_PACKAGES = {
   '@deepseek-ai/dsh-jobs': 'packages/jobs/jobs',
   '@deepseek-ai/dsh-system-prompt': 'packages/core/system-prompt',
   '@deepseek-ai/dsh-scope': 'packages/core/scope',
+  '@deepseek-ai/dsh-util-values': 'packages/util/values',
 }
 
 /** Toolchain packages taken from the checkout's own node_modules. */

@@ -157,22 +157,51 @@ export function apply(ctx: Context, config: Config): void {
     }
     if (settings.exposure.delegateTool && collisions.length === 0) {
       entry.delegate = agent.ctx.inject(['tools', 'subagents'], (scope) => {
-        try {
-          registerDelegateTool(scope, {
-            settings: () => settingsSnapshot(config),
-            planner,
-            failover,
-            warn: (message: string) => { warn(message) },
-          })
-        } catch (error: unknown) {
-          // A duplicate name means another plugin owns `subagent` in this very
-          // scope; say which knob fixes it and leave that tool in place.
-          warn(
-            'could not register the delegation tool for agent %s: %s. Set delegate.toolName to another name '
-            + 'or remove the colliding tool.',
-            agent.id,
-            error instanceof Error ? error.message : String(error),
-          )
+        const toolName = settingsSnapshot(config).delegate.toolName
+        // The official tool can land in this very scope: a preset row with
+        // `modelSelectionSettings: true` installs itself into every agent
+        // scope, and it does so while the composition runs. Registering first
+        // would make the OFFICIAL registration throw where the session is
+        // created, so this plugin waits for the composition to settle and then
+        // yields the name — the session survives either way.
+        //
+        // Yielding is visible, not silent: the log names the row and both
+        // knobs an operator has (`modelSelectionSettings: false` on that row,
+        // or another `delegate.toolName`).
+        let registration: (() => void) | undefined
+        const settle = setTimeout(() => {
+          const owner = scope.tools.get(toolName)
+          if (owner !== undefined) {
+            warn(
+              'the delegation tool "%s" is already registered in agent %s (an official tool-subagent row with '
+              + 'modelSelectionSettings: true installs per agent): leaving it in place. Set modelSelectionSettings: '
+              + 'false on that row, or point delegate.toolName at another name, to route roles.',
+              toolName,
+              agent.id,
+            )
+            return
+          }
+          try {
+            registration = registerDelegateTool(scope, {
+              settings: () => settingsSnapshot(config),
+              planner,
+              failover,
+              warn: (message: string) => { warn(message) },
+            })
+          } catch (error: unknown) {
+            // A duplicate name means another plugin owns `subagent` in this very
+            // scope; say which knob fixes it and leave that tool in place.
+            warn(
+              'could not register the delegation tool for agent %s: %s. Set delegate.toolName to another name '
+              + 'or remove the colliding tool.',
+              agent.id,
+              error instanceof Error ? error.message : String(error),
+            )
+          }
+        }, 0)
+        return () => {
+          clearTimeout(settle)
+          registration?.()
         }
       })
     }

@@ -8,8 +8,9 @@
  * throws, and neither text shadowing nor `tools.restrict()` can hide it.
  *
  * The check below reads the Loader's own rows - including rows nested inside
- * an agent preset - so the operator gets one sentence naming the row and the
- * field instead of a duplicate-registration stack trace.
+ * an agent preset, which reach the Loader as children of a `cordis:group` row
+ * whose config is the child array - so the operator gets one sentence naming
+ * the row and the field instead of a duplicate-registration stack trace.
  *
  * @module dsh-role-config/official-tool
  */

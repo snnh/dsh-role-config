@@ -8,8 +8,9 @@
  * throws, and neither text shadowing nor `tools.restrict()` can hide it.
  *
  * The check below reads the Loader's own rows - including rows nested inside
- * an agent preset - so the operator gets one sentence naming the row and the
- * field instead of a duplicate-registration stack trace.
+ * an agent preset, which reach the Loader as children of a `cordis:group` row
+ * whose config is the child array - so the operator gets one sentence naming
+ * the row and the field instead of a duplicate-registration stack trace.
  *
  * @module dsh-role-config/official-tool
  */
@@ -46,6 +47,24 @@ function collides(row: RowLike, toolName: string): boolean {
 }
 
 /**
+ * Child rows one row's config carries, in either shape a composition uses: a
+ * `cordis:group` (or preset) row holds its children as the config array
+ * itself, while a wrapper states them under `plugins`. Walking only one of
+ * these shapes misses the official tool inside a group, and a missed row is
+ * not a cosmetic problem: this plugin would register its own `subagent`, and
+ * the official registration that follows in the same scope fails the session.
+ * @param config - the row's config, of any shape.
+ * @returns the child rows to visit, or undefined when the config holds none.
+ */
+function nestedRows(config: unknown): readonly unknown[] | undefined {
+  if (Array.isArray(config)) return config
+  if (typeof config === 'object' && config !== null && Array.isArray((config as { plugins?: unknown }).plugins)) {
+    return (config as { plugins: unknown[] }).plugins
+  }
+  return undefined
+}
+
+/**
  * Find every official row that would collide with this plugin's tool.
  * @param ctx - the plugin's Host context (the Loader is read when present).
  * @param toolName - the name this plugin registers.
@@ -65,10 +84,8 @@ export function findOfficialModelSelectionRows(ctx: Context, toolName: string): 
           moduleName: OFFICIAL_TOOL_PACKAGE,
         })
       }
-      const config = row.config
-      if (typeof config === 'object' && config !== null && Array.isArray((config as { plugins?: unknown }).plugins)) {
-        visit((config as { plugins: unknown[] }).plugins)
-      }
+      const children = nestedRows(row.config)
+      if (children !== undefined) visit(children)
     }
   }
   const entries = (loader as { entries?: () => unknown }).entries

@@ -27,6 +27,8 @@ function unknownFacts(tags: readonly string[]): RouteFacts {
 interface CacheEntry {
   readonly generation: number
   readonly facts: RouteFacts
+  /** Whether an adapter currently answers for this route. */
+  readonly available: boolean
 }
 
 /**
@@ -65,6 +67,16 @@ export class CapabilityDirectory {
     return route => this.read(route, tags.get(routeKey(route)) ?? [])
   }
 
+  /**
+   * Whether an adapter answered for this route during the current generation.
+   * @param route - the route to inspect.
+   * @returns whether the route is currently servable.
+   */
+  available(route: RouteMember): boolean {
+    const cached = this.cache.get(routeKey(route))
+    return cached !== undefined && cached.generation === this.generation && cached.available
+  }
+
   /** Read one route's cached facts, or the unknown answer when unloaded. */
   private read(route: RouteMember, tags: readonly string[]): RouteFacts {
     const cached = this.cache.get(routeKey(route))
@@ -86,6 +98,7 @@ export class CapabilityDirectory {
       const contextWindow = info.context?.contextWindow
       this.cache.set(key, {
         generation: this.generation,
+        available: true,
         facts: {
           modalities,
           contextWindow,
@@ -95,7 +108,7 @@ export class CapabilityDirectory {
     } catch {
       // An adapter that refuses one model leaves the route unknown; a rule
       // that needs a capability simply does not match it.
-      this.cache.set(key, { generation: this.generation, facts: unknownFacts([]) })
+      this.cache.set(key, { generation: this.generation, available: false, facts: unknownFacts([]) })
     }
   }
 }

@@ -20,6 +20,7 @@ import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { LlmRuntime } from '@deepseek-ai/dsh-llm'
+import { applyBindings } from './bindings.ts'
 import { CapabilityDirectory } from './capabilities.ts'
 import { FailoverRegistry, installFailover } from './failover.ts'
 import { collisionAdvice, findOfficialModelSelectionRows } from './official-tool.ts'
@@ -109,6 +110,20 @@ export function apply(ctx: Context, config: Config): void {
     capabilities.invalidate()
   })
 
+  // Function bindings are re-derived whenever the settings or the adapter
+  // catalog move; one serial queue keeps the writes ordered.
+  let bindingSync: Promise<void> = Promise.resolve()
+  const syncBindings = (): void => {
+    bindingSync = bindingSync.then(async () => {
+      const settings = settingsSnapshot(config)
+      if (settings.bindings.compact.kind === 'off' && settings.bindings.sessionTitle.kind === 'off') return
+      await capabilities.prepare(settings)
+      await applyBindings({ ctx, settings, capabilities, warn })
+    }).catch((error: unknown) => {
+      warn('function binding sync failed: %s', error)
+    })
+  }
+
   const planner = new DelegationPlanner(() => settingsSnapshot(config), capabilities, llm, { warn })
   const failover = new FailoverRegistry({ warn }, () => settingsSnapshot(config).routing.fallback)
   installFailover(ctx, failover)
@@ -172,10 +187,14 @@ export function apply(ctx: Context, config: Config): void {
     installed.delete(agent)
     failover.forget(agent)
   })
-  // A settings write must not need a remount: both tools follow their flags.
+  // A settings write must not need a remount: both tools follow their flags,
+  // and the function bindings follow the roles they were pointed at.
   ctx.on('loader/volatile-update', () => {
     for (const agent of ctx.agents.list()) reconcile(agent)
+    syncBindings()
   })
 
+  syncBindings()
+  ctx.on('llm/adapters-updated', () => { syncBindings() })
   ctx.logger.info('role-config: mounted')
 }

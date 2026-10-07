@@ -13,6 +13,7 @@ export type RoleConfigKey =
   | 'switchesTitle' | 'switchesList' | 'switchesSessionStart' | 'switchesDelegate' | 'switchesFallback'
   | 'switchesAi' | 'switchesAiProvider' | 'switchesAiModel' | 'switchesAiTimeout'
   | 'delegateProvider' | 'delegateToolName'
+  | 'bindingCompact' | 'bindingSessionTitle' | 'bindingDelegateDefault' | 'bindingOff'
   | 'save' | 'discard' | 'saving' | 'unavailable' | 'notWritable' | 'conflict' | 'problemTitle'
 
 /** English copy. */
@@ -65,6 +66,10 @@ export const en: Record<RoleConfigKey, string> = {
   switchesAiProvider: 'Router provider',
   switchesAiModel: 'Router model',
   switchesAiTimeout: 'Router deadline (ms)',
+  bindingCompact: 'Context compaction',
+  bindingSessionTitle: 'Session titles',
+  bindingDelegateDefault: 'Default role for a delegation with no role',
+  bindingOff: 'Harness default',
   delegateProvider: 'Subagent provider',
   delegateToolName: 'Delegation tool name',
   save: 'Save',
@@ -126,6 +131,10 @@ export const zh: Record<RoleConfigKey, string> = {
   switchesAiProvider: '路由 provider',
   switchesAiModel: '路由模型',
   switchesAiTimeout: '路由超时（毫秒）',
+  bindingCompact: '上下文压缩',
+  bindingSessionTitle: '会话标题',
+  bindingDelegateDefault: '未指定角色时的默认角色',
+  bindingOff: '按 dsh 默认',
   delegateProvider: '子代理 provider',
   delegateToolName: '委派工具名',
   save: '保存',

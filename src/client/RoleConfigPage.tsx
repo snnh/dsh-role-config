@@ -419,6 +419,31 @@ function SwitchSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit;
         </label>
       </div>
       <div style={inline}>
+        {BINDINGS.map(({ key, labelKey }) => (
+          <label style={label} key={key}>
+            {t(labelKey)}
+            <select
+              style={field}
+              value={settings.bindings[key].kind === 'role' ? (settings.bindings[key].role ?? '') : ''}
+              onChange={event => { set(draft => ({
+                ...draft,
+                bindings: {
+                  ...draft.bindings,
+                  [key]: event.target.value.length === 0
+                    ? { kind: 'off' as const }
+                    : { kind: 'role' as const, role: event.target.value },
+                },
+              })) }}
+            >
+              <option value="">{t('bindingOff')}</option>
+              {settings.groups.flatMap(group => group.roles).map(role => (
+                <option key={role.id} value={role.id}>{role.label || role.id}</option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+      <div style={inline}>
         <label style={label}>{t('delegateProvider')}
           <input
             style={field}
@@ -437,6 +462,13 @@ function SwitchSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit;
     </section>
   )
 }
+
+/** The bindable features, in the order the page lists them. */
+const BINDINGS: readonly { key: 'compact' | 'sessionTitle' | 'delegateDefault'; labelKey: RoleConfigKey }[] = [
+  { key: 'compact', labelKey: 'bindingCompact' },
+  { key: 'sessionTitle', labelKey: 'bindingSessionTitle' },
+  { key: 'delegateDefault', labelKey: 'bindingDelegateDefault' },
+]
 
 /** Split one comma-separated control into trimmed, non-empty entries. */
 function splitList(value: string): string[] {

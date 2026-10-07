@@ -36,6 +36,19 @@ dsh plugin --profile <profile> add github:snnh/dsh-role-config
 
 开启模型选择时，官方工具会注册进每个 agent 自己的作用域，同作用域无法存在同名工具：插件会打印需要修改的行号并保留官方工具。若你更想保留官方配置，可用 `delegate.toolName` 改本插件的工具名。
 
+## 在 LAN 地址上配置
+
+设置文档默认只对回环页面开放，因此在 `http://<lan-ip>:<port>` 访问的部署里，模型页与所有插件页都会显示为不可用。若要在你实际使用的地址上配置本插件，请重述 `client-connection` 行并打开操作面：
+
+```yaml
+- id: connection
+  config:
+    trustedHosts: !!js ctx.webRuntime.trustedHosts
+    operatorSurface: trusted
+```
+
+patch 会整体替换该行 config，所以 `trustedHosts` 要一并保留。页面只会在这之后、且访问令牌校验通过时才被提供，它发起的每个请求仍要过 Host/Origin 围栏与会话检查；改变的只是设置页与插件页终于能渲染。
+
 ## 配置
 
 Web 侧栏打开 **Plugins**，选择 **Role Config**。页面编辑同一份 `role-config` 设置：模型池与描述、角色预设与链/规则、开关（暴露面、回退、AI 路由）、功能绑定、委派接线。

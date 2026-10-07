@@ -56,6 +56,19 @@ scope, where a same-named tool cannot exist: the plugin logs which row to fix
 and leaves the official tool in place. `delegate.toolName` renames this
 plugin's tool instead, if you would rather keep the official configuration.
 
+## Configuring over a LAN address
+
+Settings documents are confined to a loopback page by default, so a deployment reached at `http://<lan-ip>:<port>` shows the model pages and every plugin page as unavailable. To configure this plugin from the address you actually use, restate the `client-connection` row with its operator surface opened:
+
+```yaml
+- id: connection
+  config:
+    trustedHosts: !!js ctx.webRuntime.trustedHosts
+    operatorSurface: trusted
+```
+
+A patch replaces a row's whole config, so keep `trustedHosts` in the row. The page is served only after the access token is validated and every request it makes still passes the Host/Origin fence and the session check; what changes is that the settings and plugin pages render at all.
+
 ## Configure
 
 Open **Plugins** in the Web sidebar and select **Role Config**. The page edits

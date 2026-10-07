@@ -20,8 +20,6 @@ export interface RoleView {
   readonly label: string
   /** What the role is for. */
   readonly description: string
-  /** The group ("tier shelf") holding it. */
-  readonly group: string
 }
 
 /** One pool model as the model sees it. */
@@ -56,17 +54,11 @@ export function projectCatalog(
   settings: RoleConfigSettings,
   problems: readonly RoleConfigProblem[],
 ): CatalogView {
-  const roles: RoleView[] = []
-  for (const group of settings.groups) {
-    for (const role of group.roles) {
-      roles.push({
-        id: role.id,
-        label: role.label,
-        description: role.description ?? '',
-        group: group.label,
-      })
-    }
-  }
+  const roles: RoleView[] = settings.roles.map(role => ({
+    id: role.id,
+    label: role.label,
+    description: role.description ?? '',
+  }))
   const models: ModelView[] = settings.pool.map(entry => ({
     provider: entry.provider,
     model: entry.model,
@@ -90,7 +82,7 @@ export function renderCatalog(view: CatalogView): string {
   if (view.roles.length > 0) {
     lines.push('Role presets (delegate with role=<id>; the models behind a role are the operator\'s choice):')
     for (const role of view.roles) {
-      lines.push(`- ${role.id} [${role.group}] ${role.label}${role.description.length > 0 ? `: ${role.description}` : ''}`)
+      lines.push(`- ${role.id} ${role.label}${role.description.length > 0 ? `: ${role.description}` : ''}`)
     }
   }
   if (view.models.length > 0) {

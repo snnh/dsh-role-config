@@ -15,23 +15,21 @@ function sound(): RoleConfigSettings {
       { provider: 'deepseek', model: 'deepseek-chat', description: 'fast and cheap' },
       { provider: 'deepseek', model: 'deepseek-reasoner', description: 'deep reasoning', capabilities: ['long-context'] },
     ],
-    groups: [{
-      id: 'tier',
-      label: 'Tier',
-      roles: [{
-        id: 'premium',
-        label: 'Premium',
-        description: 'hard problems',
-        chain: [
-          { provider: 'deepseek', model: 'deepseek-reasoner' },
-          { provider: 'deepseek', model: 'deepseek-chat' },
-        ],
-        rules: [{
-          when: { promptAny: ['image'] },
-          use: { provider: 'deepseek', model: 'deepseek-chat' },
-        }],
-      }],
-    }],
+    roles: [
+      {
+              id: 'premium',
+              label: 'Premium',
+              description: 'hard problems',
+              chain: [
+        { provider: 'deepseek', model: 'deepseek-reasoner' },
+        { provider: 'deepseek', model: 'deepseek-chat' },
+              ],
+              rules: [{
+        when: { promptAny: ['image'] },
+        use: { provider: 'deepseek', model: 'deepseek-chat' },
+              }],
+            },
+    ],
     bindings: { compact: { kind: 'role', role: 'premium' } },
   })
 }
@@ -40,7 +38,7 @@ describe('role-config settings', () => {
   it('resolves every field to its default when a deployment states nothing', () => {
     const settings = Config({})
     expect(settings.pool.get()).toEqual([])
-    expect(settings.groups.get()).toEqual([])
+    expect(settings.roles.get()).toEqual([])
     expect(settings.bindings.get()).toEqual({
       compact: { kind: 'off' }, sessionTitle: { kind: 'off' }, delegateDefault: { kind: 'off' },
     })
@@ -73,10 +71,8 @@ describe('role-config settings', () => {
   it('reports chain members outside the pool and repeated members', () => {
     const settings = resolved({
       pool: [{ provider: 'a', model: 'm', description: '' }],
-      groups: [{
-        id: 'g',
-        label: 'G',
-        roles: [{
+      roles: [
+        {
           id: 'r',
           label: 'R',
           chain: [
@@ -84,41 +80,39 @@ describe('role-config settings', () => {
             { provider: 'ghost', model: 'm' },
             { provider: 'a', model: 'm' },
           ],
-        }],
-      }],
+        },
+      ],
     })
     const messages = inspectRoleConfig(settings).map(problem => `${problem.path}: ${problem.message}`)
     expect(messages).toEqual([
-      'groups.0.roles.0.chain.1: ghost/m is not in the model pool',
-      'groups.0.roles.0.chain.2: a/m appears twice in this role',
+      'roles.0.chain.1: ghost/m is not in the model pool',
+      'roles.0.chain.2: a/m appears twice in this role',
     ])
   })
 
-  it('reports duplicate role ids across groups', () => {
+  it('reports duplicate role ids', () => {
     const problems = inspectRoleConfig(resolved({
-      groups: [
-        { id: 'one', label: 'One', roles: [{ id: 'premium', label: 'P', chain: [] }] },
-        { id: 'two', label: 'Two', roles: [{ id: 'premium', label: 'P', chain: [] }] },
+      roles: [
+        { id: 'premium', label: 'P', chain: [] },
+        { id: 'premium', label: 'P', chain: [] },
       ],
     }))
     expect(problems.map(problem => problem.message)).toEqual([
-      'duplicate role id "premium" (also at groups.0.roles.0.id)',
+      'duplicate role id "premium" (also at roles.0.id)',
     ])
   })
 
   it('reports a rule whose target is not a member of its role', () => {
     const problems = inspectRoleConfig(resolved({
       pool: [{ provider: 'a', model: 'm', description: '' }],
-      groups: [{
-        id: 'g',
-        label: 'G',
-        roles: [{
+      roles: [
+        {
           id: 'r',
           label: 'R',
           chain: [{ provider: 'a', model: 'm' }],
           rules: [{ when: { promptAny: ['x'] }, use: { provider: 'a', model: 'other' } }],
-        }],
-      }],
+        },
+      ],
     }))
     expect(problems.map(problem => problem.message)).toEqual([
       'a/other is not a member of role "r"',
@@ -128,10 +122,8 @@ describe('role-config settings', () => {
   it('reports a malformed regular expression and an empty condition', () => {
     const problems = inspectRoleConfig(resolved({
       pool: [{ provider: 'a', model: 'm', description: '' }],
-      groups: [{
-        id: 'g',
-        label: 'G',
-        roles: [{
+      roles: [
+        {
           id: 'r',
           label: 'R',
           chain: [{ provider: 'a', model: 'm' }],
@@ -139,12 +131,12 @@ describe('role-config settings', () => {
             { when: { promptRegex: '(' }, use: { provider: 'a', model: 'm' } },
             { when: {}, use: { provider: 'a', model: 'm' } },
           ],
-        }],
-      }],
+        },
+      ],
     }))
     const messages = problems.map(problem => `${problem.path}: ${problem.message}`)
-    expect(messages[0]).toContain('groups.0.roles.0.rules.0.when.promptRegex: invalid regular expression')
-    expect(messages[1]).toBe('groups.0.roles.0.rules.1.when: a rule needs at least one condition')
+    expect(messages[0]).toContain('roles.0.rules.0.when.promptRegex: invalid regular expression')
+    expect(messages[1]).toBe('roles.0.rules.1.when: a rule needs at least one condition')
   })
 
   it('reports bindings that name no role or an unknown one', () => {
@@ -173,6 +165,20 @@ describe('role-config settings', () => {
   it('rejects an unusable document with every problem named', () => {
     expect(() => { assertRoleConfig(resolved({ delegate: { provider: '  ' } })) })
       .toThrow(/delegate\.provider: the delegation tool needs a subagent provider name/)
+  })
+
+  it('ignores a stored tag-group shelf instead of refusing the document', () => {
+    // The shelf is gone from the schema. A document written before that change
+    // still parses: its `groups` key is dropped like any other unknown field,
+    // and the roles it held are reported as absent rather than as an error.
+    const parsed = Config({
+      pool: [{ provider: 'a', model: 'm' }],
+      groups: [{ id: 'tier', label: 'Tier', roles: [{ id: 'premium', label: 'Premium', chain: [] }] }],
+    })
+    expect(parsed.roles.get()).toEqual([])
+    expect(parsed.pool.get()).toHaveLength(1)
+    const snapshot = { ...plainSettings(), pool: parsed.pool.get(), roles: parsed.roles.get() }
+    expect(inspectRoleConfig(snapshot)).toEqual([])
   })
 
   it('treats a condition with only zero bounds as empty', () => {

@@ -10,19 +10,17 @@ function settings(): RoleConfigSettings {
       { provider: 'deepseek', model: 'deepseek-chat', label: 'Chat', description: 'cheap and quick' },
       { provider: 'deepseek', model: 'deepseek-reasoner', description: 'slow but thorough' },
     ],
-    groups: [{
-      id: 'tier',
-      label: 'Tier',
-      roles: [{
-        id: 'premium',
-        label: 'Premium',
-        description: 'hard problems',
-        chain: [
-          { provider: 'deepseek', model: 'deepseek-reasoner' },
-          { provider: 'deepseek', model: 'deepseek-chat' },
-        ],
-      }],
-    }],
+    roles: [
+      {
+              id: 'premium',
+              label: 'Premium',
+              description: 'hard problems',
+              chain: [
+                { provider: 'deepseek', model: 'deepseek-reasoner' },
+                { provider: 'deepseek', model: 'deepseek-chat' },
+              ],
+            },
+    ],
   })
 }
 
@@ -30,7 +28,7 @@ describe('role-config catalog projection', () => {
   it('describes roles by name and description only, never by their members', () => {
     const view = projectCatalog(settings(), [])
     expect(view.roles).toEqual([
-      { id: 'premium', label: 'Premium', description: 'hard problems', group: 'Tier' },
+      { id: 'premium', label: 'Premium', description: 'hard problems' },
     ])
     // The projection is the model's only view of a role: assert the members
     // the operator configured are not reachable through it.
@@ -53,7 +51,7 @@ describe('role-config catalog projection', () => {
   it('renders roles before models with the delegation command named', () => {
     const text = renderCatalog(projectCatalog(settings(), []))
     expect(text).toContain('role=<id>')
-    expect(text).toContain('- premium [Tier] Premium: hard problems')
+    expect(text).toContain('- premium Premium: hard problems')
     expect(text).toContain('- deepseek/deepseek-chat (Chat): cheap and quick')
     expect(text.indexOf('premium')).toBeLessThan(text.indexOf('deepseek-chat'))
   })

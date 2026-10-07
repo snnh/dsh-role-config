@@ -30,12 +30,6 @@ interface DraftRole {
   chain: RouteMember[]
   rules?: RouteRule[]
 }
-interface DraftGroup {
-  id: string
-  label: string
-  roles: DraftRole[]
-}
-
 /** Props the Plugins page injects into this page. */
 export type RoleConfigPageProps = PropsRuntime<'plugins.item'>
   & PropsLocale<'settings.role-config'>
@@ -174,198 +168,163 @@ function PoolSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit; r
   )
 }
 
-/** Role presets: groups, roles, priority chains, and routing rules. */
+/** Role presets: priority chains and routing rules. */
 function RolesSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit; headingId: string }) {
   const { t, state } = props
   const settings = state.draft
-  const mutateGroups = (change: (groups: DraftGroup[]) => DraftGroup[]): void => {
-    props.edit(draft => ({ ...draft, groups: change(structuredClone(draft.groups) as DraftGroup[]) }))
+  const mutateRoles = (change: (roles: DraftRole[]) => DraftRole[]): void => {
+    props.edit(draft => ({ ...draft, roles: change(structuredClone(draft.roles) as DraftRole[]) }))
   }
-  const mutateRole = (groupIndex: number, roleIndex: number, change: (role: DraftRole) => DraftRole): void => {
-    mutateGroups((groups) => {
-      const group = groups[groupIndex]
-      const role = group?.roles[roleIndex]
-      if (group === undefined || role === undefined) return groups
-      group.roles[roleIndex] = change(structuredClone(role))
-      return groups
+  const mutateRole = (roleIndex: number, change: (role: DraftRole) => DraftRole): void => {
+    mutateRoles((roles) => {
+      const role = roles[roleIndex]
+      if (role === undefined) return roles
+      roles[roleIndex] = change(structuredClone(role))
+      return roles
     })
   }
   return (
     <section style={section} aria-labelledby={props.headingId + '-roles'}>
       <h3 id={props.headingId + '-roles'}>{t('rolesTitle')}</h3>
       <p style={muted}>{t('rolesHint')}</p>
-      {settings.groups.map((group, groupIndex) => (
-        <div key={group.id} style={row}>
-          <div style={inline}>
-            <label style={label}>{t('groupLabel')}
-              <input
-                style={field}
-                value={group.label}
-                onChange={event => { mutateGroups((groups) => {
-                  const target = groups[groupIndex]
-                  if (target !== undefined) target.label = event.target.value
-                  return groups
-                }) }}
-              />
-            </label>
-            <button type="button" onClick={() => { mutateGroups(groups => groups.filter((_, index) => index !== groupIndex)) }}>
-              {t('groupRemove')}
-            </button>
-          </div>
-          {group.roles.map((role, roleIndex) => (
-            <div key={role.id} style={row}>
-              <div style={inline}>
-                <label style={label}>{t('roleId')}
-                  <input
-                    style={field}
-                    value={role.id}
-                    onChange={event => { mutateRole(groupIndex, roleIndex, current => ({ ...current, id: event.target.value })) }}
-                  />
-                </label>
-                <label style={label}>{t('roleLabel')}
-                  <input
-                    style={field}
-                    value={role.label}
-                    onChange={event => { mutateRole(groupIndex, roleIndex, current => ({ ...current, label: event.target.value })) }}
-                  />
-                </label>
-                <button type="button" onClick={() => { mutateGroups((groups) => {
-                  const target = groups[groupIndex]
-                  if (target !== undefined) target.roles = target.roles.filter((_, index) => index !== roleIndex)
-                  return groups
-                }) }}>
-                  {t('roleRemove')}
-                </button>
-              </div>
-              <label style={label}>{t('roleDescription')}
+      {settings.roles.map((role, roleIndex) => (
+          <div key={role.id} style={row}>
+            <div style={inline}>
+              <label style={label}>{t('roleId')}
                 <input
                   style={field}
-                  value={role.description ?? ''}
-                  onChange={event => { mutateRole(groupIndex, roleIndex, current => ({ ...current, description: event.target.value })) }}
+                  value={role.id}
+                  onChange={event => { mutateRole(roleIndex, current => ({ ...current, id: event.target.value })) }}
                 />
               </label>
-              <div>
-                <div style={muted}>{t('chainTitle')}</div>
-                {role.chain.length === 0 ? <div style={muted}>{t('chainEmpty')}</div> : null}
-                {role.chain.map((member, memberIndex) => (
-                  <div key={`${member.provider}/${member.model}`} style={inline}>
-                    <span style={mono}>{memberIndex + 1}. {member.provider}/{member.model}</span>
-                    <button type="button" disabled={memberIndex === 0} onClick={() => { moveMember(props, groupIndex, roleIndex, memberIndex, -1) }}>{t('memberUp')}</button>
-                    <button type="button" disabled={memberIndex === role.chain.length - 1} onClick={() => { moveMember(props, groupIndex, roleIndex, memberIndex, 1) }}>{t('memberDown')}</button>
-                    <button type="button" onClick={() => { mutateRole(groupIndex, roleIndex, current => ({ ...current, chain: current.chain.filter((_, index) => index !== memberIndex) })) }}>{t('memberRemove')}</button>
-                  </div>
-                ))}
-                <select
-                  value=""
-                  onChange={event => {
-                    const member = memberFromKey(settings, event.target.value)
-                    if (member === undefined) return
-                    mutateRole(groupIndex, roleIndex, current => ({ ...current, chain: [...current.chain, member] }))
-                  }}
-                >
-                  <option value="">{t('chainAdd')}</option>
-                  {settings.pool
-                    .filter(entry => !role.chain.some(member => member.provider === entry.provider && member.model === entry.model))
-                    .map(entry => <option key={`${entry.provider}/${entry.model}`} value={`${entry.provider}\u0000${entry.model}`}>{entry.provider}/{entry.model}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={muted}>{t('rulesTitle')} — {t('rulesHint')}</div>
-                {(role.rules ?? []).map((rule, ruleIndex) => (
-                  <div key={`rule-${ruleIndex}`} style={row}>
-                    <div style={inline}>
-                      <label style={label}>{t('ruleKeywords')}
-                        <input
-                          style={field}
-                          value={(rule.when.promptAny ?? []).join(', ')}
-                          onChange={event => { mutateRule(props, groupIndex, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, promptAny: splitList(event.target.value) } })) }}
-                        />
-                      </label>
-                      <label style={label}>{t('ruleRegex')}
-                        <input
-                          style={field}
-                          value={rule.when.promptRegex ?? ''}
-                          onChange={event => { mutateRule(props, groupIndex, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, promptRegex: event.target.value } })) }}
-                        />
-                      </label>
-                    </div>
-                    <div style={inline}>
-                      <label style={label}>{t('ruleModalities')}
-                        <input
-                          style={field}
-                          value={(rule.when.modalities ?? []).join(', ')}
-                          onChange={event => { mutateRule(props, groupIndex, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, modalities: splitList(event.target.value) } })) }}
-                        />
-                      </label>
-                      <label style={label}>{t('ruleContext')}
-                        <input
-                          style={field}
-                          type="number"
-                          value={rule.when.minContextWindow ?? 0}
-                          onChange={event => { mutateRule(props, groupIndex, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, minContextWindow: Number(event.target.value) } })) }}
-                        />
-                      </label>
-                      <label style={label}>{t('ruleTags')}
-                        <input
-                          style={field}
-                          value={(rule.when.capabilities ?? []).join(', ')}
-                          onChange={event => { mutateRule(props, groupIndex, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, capabilities: splitList(event.target.value) } })) }}
-                        />
-                      </label>
-                    </div>
-                    <div style={inline}>
-                      <label style={label}>{t('ruleUse')}
-                        <select
-                          value={`${rule.use.provider}\u0000${rule.use.model}`}
-                          onChange={event => {
-                            const member = memberFromKey(settings, event.target.value)
-                            if (member === undefined) return
-                            mutateRule(props, groupIndex, roleIndex, ruleIndex, current => ({ ...current, use: member }))
-                          }}
-                        >
-                          {role.chain.map(member => (
-                            <option key={`${member.provider}/${member.model}`} value={`${member.provider}\u0000${member.model}`}>
-                              {member.provider}/{member.model}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button type="button" onClick={() => { mutateRole(groupIndex, roleIndex, current => ({ ...current, rules: (current.rules ?? []).filter((_, index) => index !== ruleIndex) })) }}>
-                        {t('ruleRemove')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  disabled={role.chain.length === 0}
-                  onClick={() => { mutateRole(groupIndex, roleIndex, current => ({
-                    ...current,
-                    rules: [...(current.rules ?? []), { when: { promptAny: [] }, use: current.chain[0] as RouteMember }],
-                  })) }}
-                >
-                  {t('ruleAdd')}
-                </button>
-              </div>
+              <label style={label}>{t('roleLabel')}
+                <input
+                  style={field}
+                  value={role.label}
+                  onChange={event => { mutateRole(roleIndex, current => ({ ...current, label: event.target.value })) }}
+                />
+              </label>
+              <button type="button" onClick={() => { mutateRoles((roles) => roles.filter((_, index) => index !== roleIndex)) }}>
+                {t('roleRemove')}
+              </button>
             </div>
-          ))}
-          <button type="button" onClick={() => { mutateGroups((groups) => {
-            const target = groups[groupIndex]
-            if (target !== undefined) {
-              const id = nextId(target.roles.map(role => role.id), 'role')
-              target.roles = [...target.roles, { id, label: id, chain: [] }]
-            }
-            return groups
-          }) }}>
-            {t('roleAdd')}
-          </button>
+            <label style={label}>{t('roleDescription')}
+              <input
+                style={field}
+                value={role.description ?? ''}
+                onChange={event => { mutateRole(roleIndex, current => ({ ...current, description: event.target.value })) }}
+              />
+            </label>
+            <div>
+              <div style={muted}>{t('chainTitle')}</div>
+              {role.chain.length === 0 ? <div style={muted}>{t('chainEmpty')}</div> : null}
+              {role.chain.map((member, memberIndex) => (
+                <div key={`${member.provider}/${member.model}`} style={inline}>
+                  <span style={mono}>{memberIndex + 1}. {member.provider}/{member.model}</span>
+                  <button type="button" disabled={memberIndex === 0} onClick={() => { moveMember(props, roleIndex, memberIndex, -1) }}>{t('memberUp')}</button>
+                  <button type="button" disabled={memberIndex === role.chain.length - 1} onClick={() => { moveMember(props, roleIndex, memberIndex, 1) }}>{t('memberDown')}</button>
+                  <button type="button" onClick={() => { mutateRole(roleIndex, current => ({ ...current, chain: current.chain.filter((_, index) => index !== memberIndex) })) }}>{t('memberRemove')}</button>
+                </div>
+              ))}
+              <select
+                value=""
+                onChange={event => {
+                  const member = memberFromKey(settings, event.target.value)
+                  if (member === undefined) return
+                  mutateRole(roleIndex, current => ({ ...current, chain: [...current.chain, member] }))
+                }}
+              >
+                <option value="">{t('chainAdd')}</option>
+                {settings.pool
+                  .filter(entry => !role.chain.some(member => member.provider === entry.provider && member.model === entry.model))
+                  .map(entry => <option key={`${entry.provider}/${entry.model}`} value={`${entry.provider}\u0000${entry.model}`}>{entry.provider}/{entry.model}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={muted}>{t('rulesTitle')} — {t('rulesHint')}</div>
+              {(role.rules ?? []).map((rule, ruleIndex) => (
+                <div key={`rule-${ruleIndex}`} style={row}>
+                  <div style={inline}>
+                    <label style={label}>{t('ruleKeywords')}
+                      <input
+                        style={field}
+                        value={(rule.when.promptAny ?? []).join(', ')}
+                        onChange={event => { mutateRule(props, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, promptAny: splitList(event.target.value) } })) }}
+                      />
+                    </label>
+                    <label style={label}>{t('ruleRegex')}
+                      <input
+                        style={field}
+                        value={rule.when.promptRegex ?? ''}
+                        onChange={event => { mutateRule(props, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, promptRegex: event.target.value } })) }}
+                      />
+                    </label>
+                  </div>
+                  <div style={inline}>
+                    <label style={label}>{t('ruleModalities')}
+                      <input
+                        style={field}
+                        value={(rule.when.modalities ?? []).join(', ')}
+                        onChange={event => { mutateRule(props, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, modalities: splitList(event.target.value) } })) }}
+                      />
+                    </label>
+                    <label style={label}>{t('ruleContext')}
+                      <input
+                        style={field}
+                        type="number"
+                        value={rule.when.minContextWindow ?? 0}
+                        onChange={event => { mutateRule(props, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, minContextWindow: Number(event.target.value) } })) }}
+                      />
+                    </label>
+                    <label style={label}>{t('ruleTags')}
+                      <input
+                        style={field}
+                        value={(rule.when.capabilities ?? []).join(', ')}
+                        onChange={event => { mutateRule(props, roleIndex, ruleIndex, current => ({ ...current, when: { ...current.when, capabilities: splitList(event.target.value) } })) }}
+                      />
+                    </label>
+                  </div>
+                  <div style={inline}>
+                    <label style={label}>{t('ruleUse')}
+                      <select
+                        value={`${rule.use.provider}\u0000${rule.use.model}`}
+                        onChange={event => {
+                          const member = memberFromKey(settings, event.target.value)
+                          if (member === undefined) return
+                          mutateRule(props, roleIndex, ruleIndex, current => ({ ...current, use: member }))
+                        }}
+                      >
+                        {role.chain.map(member => (
+                          <option key={`${member.provider}/${member.model}`} value={`${member.provider}\u0000${member.model}`}>
+                            {member.provider}/{member.model}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button type="button" onClick={() => { mutateRole(roleIndex, current => ({ ...current, rules: (current.rules ?? []).filter((_, index) => index !== ruleIndex) })) }}>
+                      {t('ruleRemove')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                disabled={role.chain.length === 0}
+                onClick={() => { mutateRole(roleIndex, current => ({
+                  ...current,
+                  rules: [...(current.rules ?? []), { when: { promptAny: [] }, use: current.chain[0] as RouteMember }],
+                })) }}
+              >
+                {t('ruleAdd')}
+              </button>
+            </div>
         </div>
       ))}
-      <button type="button" onClick={() => { mutateGroups((groups) => {
-        const id = nextId(groups.map(group => group.id), 'group')
-        return [...groups, { id, label: id, roles: [] }]
+      <button type="button" onClick={() => { mutateRoles((roles) => {
+        const id = nextId(roles.map(role => role.id), 'role')
+        return [...roles, { id, label: id, chain: [] }]
       }) }}>
-        {t('groupAdd')}
+        {t('roleAdd')}
       </button>
     </section>
   )
@@ -436,7 +395,7 @@ function SwitchSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit;
               })) }}
             >
               <option value="">{t('bindingOff')}</option>
-              {settings.groups.flatMap(group => group.roles).map(role => (
+              {settings.roles.map(role => (
                 <option key={role.id} value={role.id}>{role.label || role.id}</option>
               ))}
             </select>
@@ -494,14 +453,13 @@ function nextId(existing: readonly string[], stem: string): string {
 /** Reorder one chain member. */
 function moveMember(
   props: { t: Copy; state: RoleConfigPageState; edit: Edit },
-  groupIndex: number,
   roleIndex: number,
   memberIndex: number,
   delta: number,
 ): void {
   props.edit((draft) => {
-    const groups = structuredClone(draft.groups) as DraftGroup[]
-    const role = groups[groupIndex]?.roles[roleIndex]
+    const roles = structuredClone(draft.roles) as DraftRole[]
+    const role = roles[roleIndex]
     if (role === undefined) return draft
     const chain = [...role.chain]
     const target = memberIndex + delta
@@ -511,26 +469,25 @@ function moveMember(
     chain[memberIndex] = other
     chain[target] = member
     role.chain = chain
-    return { ...draft, groups }
+    return { ...draft, roles }
   })
 }
 
 /** Stage one rule edit. */
 function mutateRule(
   props: { t: Copy; state: RoleConfigPageState; edit: Edit },
-  groupIndex: number,
   roleIndex: number,
   ruleIndex: number,
   change: (rule: RouteRule) => RouteRule,
 ): void {
   props.edit((draft) => {
-    const groups = structuredClone(draft.groups) as DraftGroup[]
-    const role = groups[groupIndex]?.roles[roleIndex]
+    const roles = structuredClone(draft.roles) as DraftRole[]
+    const role = roles[roleIndex]
     const rule = role?.rules?.[ruleIndex]
     if (role === undefined || rule === undefined) return draft
     const rules = [...(role.rules ?? [])]
     rules[ruleIndex] = change(rule)
     role.rules = rules
-    return { ...draft, groups }
+    return { ...draft, roles }
   })
 }

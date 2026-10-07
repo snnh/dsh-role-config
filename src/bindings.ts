@@ -98,7 +98,7 @@ export function resolveBindingRoute(
   target: BindingTarget,
 ): RouteMember | undefined {
   if (target.kind !== 'role') return undefined
-  const role = indexRoles(settings).get(target.role ?? '')?.role
+  const role = indexRoles(settings).get(target.role ?? '')
   if (role === undefined || role.chain.length === 0) return undefined
   const order = fallbackOrder(role, role.chain[0])
   return order.find(member => capabilities.available(member)) ?? role.chain[0]

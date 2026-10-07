@@ -15,7 +15,6 @@ import type {
   PoolModel,
   Role,
   RoleConfigSettings,
-  RoleGroup,
   RouteCondition,
   RouteMember,
   RouteRule,
@@ -62,26 +61,16 @@ export const EMPTY_FACTS: RouteFacts = {
   tags: new Set<string>(),
 }
 
-/** One role together with the group that holds it. */
-export interface IndexedRole {
-  /** The role itself. */
-  readonly role: Role
-  /** The group holding it. */
-  readonly group: RoleGroup
-}
-
 /**
  * Index roles by id. A duplicate id keeps its first occurrence; the settings
  * validation reports the duplicate to the editor.
  * @param settings - current settings snapshot.
- * @returns role id to its role and group.
+ * @returns role id to its role.
  */
-export function indexRoles(settings: RoleConfigSettings): Map<string, IndexedRole> {
-  const index = new Map<string, IndexedRole>()
-  for (const group of settings.groups) {
-    for (const role of group.roles) {
-      if (!index.has(role.id)) index.set(role.id, { role, group })
-    }
+export function indexRoles(settings: RoleConfigSettings): Map<string, Role> {
+  const index = new Map<string, Role>()
+  for (const role of settings.roles) {
+    if (!index.has(role.id)) index.set(role.id, role)
   }
   return index
 }

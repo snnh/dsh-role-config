@@ -85,16 +85,6 @@ export interface Role {
   readonly rules?: readonly RouteRule[]
 }
 
-/** A user-defined tag group ("tier shelf") holding roles. */
-export interface RoleGroup {
-  /** Stable id; unique among groups. */
-  readonly id: string
-  /** Display name of the group. */
-  readonly label: string
-  /** Roles in this group. */
-  readonly roles: readonly Role[]
-}
-
 /** One function a role may serve, or `off` for the harness default. */
 export interface BindingTarget {
   /** Whether the function keeps its harness default or follows a role. */
@@ -151,8 +141,8 @@ export interface DelegateConfig {
 export interface RoleConfigSettings {
   /** Models the main agent may name directly, with the user's descriptions. */
   readonly pool: readonly PoolModel[]
-  /** Role presets, grouped like the tiers they generalize. */
-  readonly groups: readonly RoleGroup[]
+  /** Role presets, listed in the order the operator arranged them. */
+  readonly roles: readonly Role[]
   /** Per-function role bindings. */
   readonly bindings: Bindings
   /** Model-visible surfaces. */
@@ -186,27 +176,23 @@ export const Config = z.object({
     description: z.string().default(''),
     capabilities: z.array(z.string()).default([]),
   })).default([]).volatile(),
-  groups: z.array(z.object({
+  roles: z.array(z.object({
     id: z.string().required(),
     label: z.string().required(),
-    roles: z.array(z.object({
-      id: z.string().required(),
-      label: z.string().required(),
-      description: z.string(),
-      chain: z.array(routeMember).default([]),
-      rules: z.array(z.object({
-        label: z.string(),
-        when: z.object({
-          promptAny: z.array(z.string()).default([]),
-          promptRegex: z.string(),
-          modalities: z.array(z.string()).default([]),
-          minContextWindow: z.number().default(0),
-          capabilities: z.array(z.string()).default([]),
-        }).default({}),
-        // `use` stays optional in the schema so a half-written row never
-        // bricks the Host; inspectRoleConfig() reports it to the editor.
-        use: routeMember.default({ provider: '', model: '' }),
-      })).default([]),
+    description: z.string(),
+    chain: z.array(routeMember).default([]),
+    rules: z.array(z.object({
+      label: z.string(),
+      when: z.object({
+        promptAny: z.array(z.string()).default([]),
+        promptRegex: z.string(),
+        modalities: z.array(z.string()).default([]),
+        minContextWindow: z.number().default(0),
+        capabilities: z.array(z.string()).default([]),
+      }).default({}),
+      // `use` stays optional in the schema so a half-written row never
+      // bricks the Host; inspectRoleConfig() reports it to the editor.
+      use: routeMember.default({ provider: '', model: '' }),
     })).default([]),
   })).default([]).volatile(),
   bindings: z.object({
@@ -289,68 +275,62 @@ export function inspectRoleConfig(settings: RoleConfigSettings): RoleConfigProbl
   })
 
   const roleIds = new Map<string, string>()
-  settings.groups.forEach((group, groupIndex) => {
-    const groupPath = `groups.${groupIndex}`
-    if (group.id.trim().length === 0) {
-      problems.push({ path: `${groupPath}.id`, message: 'a tag group needs an id' })
-    }
-    group.roles.forEach((role, roleIndex) => {
-      const rolePath = `${groupPath}.roles.${roleIndex}`
-      if (role.id.trim().length === 0) {
-        problems.push({ path: `${rolePath}.id`, message: 'a role needs an id' })
+  settings.roles.forEach((role, roleIndex) => {
+    const rolePath = `roles.${roleIndex}`
+    if (role.id.trim().length === 0) {
+      problems.push({ path: `${rolePath}.id`, message: 'a role needs an id' })
+    } else {
+      const previous = roleIds.get(role.id)
+      if (previous !== undefined) {
+        problems.push({ path: `${rolePath}.id`, message: `duplicate role id "${role.id}" (also at ${previous})` })
       } else {
-        const previous = roleIds.get(role.id)
-        if (previous !== undefined) {
-          problems.push({ path: `${rolePath}.id`, message: `duplicate role id "${role.id}" (also at ${previous})` })
-        } else {
-          roleIds.set(role.id, `${rolePath}.id`)
-        }
+        roleIds.set(role.id, `${rolePath}.id`)
       }
-      const inChain = new Set<string>()
-      role.chain.forEach((member, memberIndex) => {
-        const key = routeKey(member)
-        if (!poolKeys.has(key)) {
-          problems.push({
-            path: `${rolePath}.chain.${memberIndex}`,
-            message: `${routeLabel(member)} is not in the model pool`,
-          })
-        }
-        if (inChain.has(key)) {
-          problems.push({
-            path: `${rolePath}.chain.${memberIndex}`,
-            message: `${routeLabel(member)} appears twice in this role`,
-          })
-        }
-        inChain.add(key)
-      })
-      for (const [ruleIndex, rule] of (role.rules ?? []).entries()) {
-        const rulePath = `${rolePath}.rules.${ruleIndex}`
-        if (!inChain.has(routeKey(rule.use))) {
-          problems.push({
-            path: `${rulePath}.use`,
-            message: `${routeLabel(rule.use)} is not a member of role "${role.id}"`,
-          })
-        }
-        const regex = rule.when.promptRegex
-        if (regex !== undefined && regex.length > 0) {
-          try {
-            void new RegExp(regex)
-          } catch (error: unknown) {
-            problems.push({
-              path: `${rulePath}.when.promptRegex`,
-              message: `invalid regular expression: ${error instanceof Error ? error.message : String(error)}`,
-            })
-          }
-        }
-        if (conditionIsEmpty(rule.when)) {
-          problems.push({ path: `${rulePath}.when`, message: 'a rule needs at least one condition' })
-        }
+    }
+    const inChain = new Set<string>()
+    role.chain.forEach((member, memberIndex) => {
+      const key = routeKey(member)
+      if (!poolKeys.has(key)) {
+        problems.push({
+          path: `${rolePath}.chain.${memberIndex}`,
+          message: `${routeLabel(member)} is not in the model pool`,
+        })
       }
+      if (inChain.has(key)) {
+        problems.push({
+          path: `${rolePath}.chain.${memberIndex}`,
+          message: `${routeLabel(member)} appears twice in this role`,
+        })
+      }
+      inChain.add(key)
     })
+    for (const [ruleIndex, rule] of (role.rules ?? []).entries()) {
+      const rulePath = `${rolePath}.rules.${ruleIndex}`
+      if (!inChain.has(routeKey(rule.use))) {
+        problems.push({
+          path: `${rulePath}.use`,
+          message: `${routeLabel(rule.use)} is not a member of role "${role.id}"`,
+        })
+      }
+      const regex = rule.when.promptRegex
+      if (regex !== undefined && regex.length > 0) {
+        try {
+          void new RegExp(regex)
+        } catch (error: unknown) {
+          problems.push({
+            path: `${rulePath}.when.promptRegex`,
+            message: `invalid regular expression: ${error instanceof Error ? error.message : String(error)}`,
+          })
+        }
+      }
+      if (conditionIsEmpty(rule.when)) {
+        problems.push({ path: `${rulePath}.when`, message: 'a rule needs at least one condition' })
+      }
+    }
   })
 
   // A partially written document reaches this check through the Host's own
-  // resolution; a missing group must be reported, never crash the read.
+  // resolution; a missing binding must be reported, never crash the read.
   const configuredBindings = settings.bindings ?? {}
   const bindings: readonly [BindingTarget | undefined, string][] = [
     [configuredBindings.compact, 'bindings.compact'],

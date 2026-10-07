@@ -15,11 +15,9 @@ const POOL = [
 
 const ROLES = {
   pool: POOL,
-  groups: [{
-    id: 'tier',
-    label: 'Tier',
-    roles: [{ id: 'cheap', label: 'Cheap', chain: [{ provider: 'a', model: 'gone' }, { provider: 'a', model: 'live' }] }],
-  }],
+  roles: [
+    { id: 'cheap', label: 'Cheap', chain: [{ provider: 'a', model: 'gone' }, { provider: 'a', model: 'live' }] },
+  ],
   bindings: {
     compact: { kind: 'role' as const, role: 'cheap' },
     sessionTitle: { kind: 'off' as const },

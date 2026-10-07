@@ -55,7 +55,6 @@ export function registerListRolesTool(ctx: Context, source: RoleCatalogSource): 
                 id: { type: 'string', required: true },
                 label: { type: 'string', required: true },
                 description: { type: 'string', required: true },
-                group: { type: 'string', required: true },
               },
             },
           },

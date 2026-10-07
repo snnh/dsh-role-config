@@ -35,16 +35,14 @@ async function call(
 
 const SETTINGS = plainSettings({
   pool: [{ provider: 'a', model: 'm', description: 'does small edits' }],
-  groups: [{
-    id: 'tier',
-    label: 'Tier',
-    roles: [{
-      id: 'fast',
-      label: 'Fast',
-      description: 'quick scoped work',
-      chain: [{ provider: 'a', model: 'm' }],
-    }],
-  }],
+  roles: [
+    {
+          id: 'fast',
+          label: 'Fast',
+          description: 'quick scoped work',
+          chain: [{ provider: 'a', model: 'm' }],
+        },
+  ],
 })
 
 describe('list_model_roles', () => {
@@ -61,11 +59,13 @@ describe('list_model_roles', () => {
   it('returns roles and pool models, and never a role member', async () => {
     const { raw, text } = await call(SETTINGS)
     expect(raw).toEqual({
-      roles: [{ id: 'fast', label: 'Fast', description: 'quick scoped work', group: 'Tier' }],
+      roles: [
+        { id: 'fast', label: 'Fast', description: 'quick scoped work' },
+      ],
       models: [{ provider: 'a', model: 'm', label: 'm', description: 'does small edits' }],
       problems: [],
     })
-    expect(text).toContain('- fast [Tier] Fast: quick scoped work')
+    expect(text).toContain('- fast Fast: quick scoped work')
     expect(text).toContain('- a/m: does small edits')
   })
 

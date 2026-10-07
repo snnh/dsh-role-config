@@ -13,7 +13,7 @@ import { plainSettings } from './fixtures.ts'
 function liveConfig(settings: RoleConfigSettings): Config {
   return {
     pool: { get: () => settings.pool },
-    groups: { get: () => settings.groups },
+    roles: { get: () => settings.roles },
     bindings: { get: () => settings.bindings },
     exposure: { get: () => settings.exposure },
     routing: { get: () => settings.routing },
@@ -55,11 +55,9 @@ function namesIn(ctx: Context, agent: Agent): string[] {
 
 const ROLES = {
   pool: [{ provider: 'a', model: 'cheap', description: 'quick' }],
-  groups: [{
-    id: 'tier',
-    label: 'Tier',
-    roles: [{ id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'cheap' }] }],
-  }],
+  roles: [
+    { id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'cheap' }] },
+  ],
 }
 
 describe('role-config plugin wiring', () => {

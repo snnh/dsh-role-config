@@ -103,15 +103,13 @@ function call(
 }
 
 const ROLES = {
-  groups: [{
-    id: 'tier',
-    label: 'Tier',
-    roles: [{
-      id: 'fast',
-      label: 'Fast',
-      chain: [{ provider: 'a', model: 'cheap' }, { provider: 'a', model: 'fallback' }],
-    }],
-  }],
+  roles: [
+    {
+          id: 'fast',
+          label: 'Fast',
+          chain: [{ provider: 'a', model: 'cheap' }, { provider: 'a', model: 'fallback' }],
+        },
+  ],
   pool: [
     { provider: 'a', model: 'cheap', description: 'quick' },
     { provider: 'a', model: 'fallback', description: 'backup' },

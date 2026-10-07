@@ -35,7 +35,7 @@ import type {
   Exposure,
   PoolModel,
   RoleConfigSettings,
-  RoleGroup,
+  Role,
   Routing,
 } from './settings.ts'
 
@@ -51,8 +51,8 @@ export const inject = ['tools', 'agents']
 export interface Config {
   /** Models the main agent may name directly, with the user's descriptions. */
   pool: Volatile<PoolModel[]>
-  /** Role presets, grouped like the tiers they generalize. */
-  groups: Volatile<RoleGroup[]>
+  /** Role presets the delegation tool accepts by id. */
+  roles: Volatile<Role[]>
   /** Per-function role bindings. */
   bindings: Volatile<Bindings>
   /** Model-visible surfaces. */
@@ -70,7 +70,7 @@ export const Config = RoleConfigSchema
 export function settingsSnapshot(config: Config): RoleConfigSettings {
   return {
     pool: config.pool.get(),
-    groups: config.groups.get(),
+    roles: config.roles.get(),
     bindings: config.bindings.get(),
     exposure: config.exposure.get(),
     routing: config.routing.get(),

@@ -21,7 +21,6 @@ import type {
   PoolModel,
   Role,
   RoleConfigSettings,
-  RoleGroup,
   RouteCondition,
   RouteMember,
   RouteRule,
@@ -89,7 +88,7 @@ export interface RoleConfigPageFace {
 /** The page's empty settings value, used before the first read lands. */
 const EMPTY: RoleConfigSettings = {
   pool: [],
-  groups: [],
+  roles: [],
   bindings: { compact: { kind: 'off' }, sessionTitle: { kind: 'off' }, delegateDefault: { kind: 'off' } },
   exposure: { listTool: true, sessionStart: false, delegateTool: true },
   routing: { fallback: true, aiEnabled: false, aiTimeoutMs: 8000 },
@@ -232,7 +231,7 @@ export class RoleConfigPageController {
     const generation = ++this.saveGeneration
     this.saving = true
     this.publish()
-    const ops = (['pool', 'groups', 'bindings', 'exposure', 'routing', 'delegate'] as const)
+    const ops = (['pool', 'roles', 'bindings', 'exposure', 'routing', 'delegate'] as const)
       .map(field => ({ op: 'set' as const, path: [field], value: desired[field] as never }))
     try {
       const ok = await this.scope.mutate(ops, this.draftRevision)
@@ -320,4 +319,4 @@ export function poolEntryFor(provider: string, model: string, description = ''):
 }
 
 /** Convenience: the settings fields the page edits, in save order. */
-export type { Bindings, DelegateConfig, Exposure, Role, RoleGroup, RouteCondition, RouteMember, RouteRule, Routing }
+export type { Bindings, DelegateConfig, Exposure, Role, RouteCondition, RouteMember, RouteRule, Routing }

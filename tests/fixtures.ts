@@ -11,7 +11,7 @@ import type { RoleConfigSettings } from '../src/settings.ts'
 export function plainSettings(over: Partial<RoleConfigSettings> = {}): RoleConfigSettings {
   const base: RoleConfigSettings = {
     pool: [],
-    groups: [],
+    roles: [],
     bindings: {
       compact: { kind: 'off' },
       sessionTitle: { kind: 'off' },

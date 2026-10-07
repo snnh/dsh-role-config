@@ -56,15 +56,13 @@ describe('role-config delegation planning', () => {
   it('serves the chain head when nothing else decides', async () => {
     const settings = plainSettings({
       pool: POOL,
-      groups: [{
-        id: 'tier',
-        label: 'Tier',
-        roles: [{
-          id: 'fast',
-          label: 'Fast',
-          chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
-        }],
-      }],
+      roles: [
+        {
+                  id: 'fast',
+                  label: 'Fast',
+                  chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
+                },
+      ],
     })
     const plan = await plannerFor(settings).plan({ prompt: 'tidy the changelog', role: 'fast' }, SIGNAL)
     expect(plan).toEqual({
@@ -78,16 +76,14 @@ describe('role-config delegation planning', () => {
   it('lets a condition rule pick the multimodal member over the head', async () => {
     const settings = plainSettings({
       pool: POOL,
-      groups: [{
-        id: 'tier',
-        label: 'Tier',
-        roles: [{
-          id: 'review',
-          label: 'Review',
-          chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
-          rules: [{ when: { promptAny: ['screenshot'], modalities: ['image'] }, use: { provider: 'a', model: 'vision' } }],
-        }],
-      }],
+      roles: [
+        {
+                  id: 'review',
+                  label: 'Review',
+                  chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
+                  rules: [{ when: { promptAny: ['screenshot'], modalities: ['image'] }, use: { provider: 'a', model: 'vision' } }],
+                },
+      ],
     })
     const llm = fakeLlm([
       { provider: 'a', id: 'text-only', name: 'Text', inputModalities: ['text'] },
@@ -106,16 +102,14 @@ describe('role-config delegation planning', () => {
   it('skips a rule whose capability the member cannot prove', async () => {
     const settings = plainSettings({
       pool: POOL,
-      groups: [{
-        id: 'tier',
-        label: 'Tier',
-        roles: [{
-          id: 'review',
-          label: 'Review',
-          chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
-          rules: [{ when: { promptAny: ['screenshot'], modalities: ['image'] }, use: { provider: 'a', model: 'text-only' } }],
-        }],
-      }],
+      roles: [
+        {
+                  id: 'review',
+                  label: 'Review',
+                  chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
+                  rules: [{ when: { promptAny: ['screenshot'], modalities: ['image'] }, use: { provider: 'a', model: 'text-only' } }],
+                },
+      ],
     })
     const llm = fakeLlm([
       { provider: 'a', id: 'text-only', name: 'Text', inputModalities: ['text'] },
@@ -130,15 +124,13 @@ describe('role-config delegation planning', () => {
     const settings = plainSettings({
       pool: POOL,
       routing: { fallback: true, aiEnabled: true, aiProvider: 'a', aiModel: 'text-only', aiTimeoutMs: 1000 },
-      groups: [{
-        id: 'tier',
-        label: 'Tier',
-        roles: [{
-          id: 'fast',
-          label: 'Fast',
-          chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
-        }],
-      }],
+      roles: [
+        {
+                  id: 'fast',
+                  label: 'Fast',
+                  chain: [{ provider: 'a', model: 'text-only' }, { provider: 'a', model: 'vision' }],
+                },
+      ],
     })
     const llm = fakeLlm([
       { provider: 'a', id: 'text-only', name: 'Text' },
@@ -153,11 +145,9 @@ describe('role-config delegation planning', () => {
     const settings = plainSettings({
       pool: POOL,
       routing: { fallback: true, aiEnabled: true, aiProvider: 'a', aiModel: 'text-only', aiTimeoutMs: 1000 },
-      groups: [{
-        id: 'tier',
-        label: 'Tier',
-        roles: [{ id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'text-only' }] }],
-      }],
+      roles: [
+        { id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'text-only' }] },
+      ],
     })
     const llm = fakeLlm([{ provider: 'a', id: 'text-only', name: 'Text' }], 'no idea')
     const plan = await plannerFor(settings, llm).plan({ prompt: 'anything', role: 'fast' }, SIGNAL)
@@ -190,11 +180,9 @@ describe('role-config delegation planning', () => {
         sessionTitle: { kind: 'off' },
         delegateDefault: { kind: 'role', role: 'fast' },
       },
-      groups: [{
-        id: 'tier',
-        label: 'Tier',
-        roles: [{ id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'text-only' }] }],
-      }],
+      roles: [
+        { id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'text-only' }] },
+      ],
     })
     const plan = await plannerFor(settings).plan({ prompt: 'anything' }, SIGNAL)
     expect(plan.role).toBe('fast')
@@ -208,7 +196,9 @@ describe('role-config delegation planning', () => {
 
   it('reports an unknown role and an empty role', async () => {
     const settings = plainSettings({
-      groups: [{ id: 'tier', label: 'Tier', roles: [{ id: 'empty', label: 'Empty', chain: [] }] }],
+      roles: [
+        { id: 'empty', label: 'Empty', chain: [] },
+      ],
     })
     const planner = plannerFor(settings)
     await expect(planner.plan({ prompt: 'x', role: 'ghost' }, SIGNAL))

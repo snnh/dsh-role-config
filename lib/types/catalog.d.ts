@@ -17,8 +17,6 @@ export interface RoleView {
     readonly label: string;
     /** What the role is for. */
     readonly description: string;
-    /** The group ("tier shelf") holding it. */
-    readonly group: string;
 }
 /** One pool model as the model sees it. */
 export interface ModelView {

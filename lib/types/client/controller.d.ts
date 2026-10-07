@@ -12,7 +12,7 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis';
 import { type SnapshotStore } from '@deepseek-ai/dsh-client-store';
 import type { SettingsFormScope, SettingsFormShell } from '@deepseek-ai/dsh-client-ui-primitives';
-import type { Bindings, DelegateConfig, Exposure, PoolModel, Role, RoleConfigSettings, RoleGroup, RouteCondition, RouteMember, RouteRule, Routing } from '../settings.ts';
+import type { Bindings, DelegateConfig, Exposure, PoolModel, Role, RoleConfigSettings, RouteCondition, RouteMember, RouteRule, Routing } from '../settings.ts';
 import type { RoleConfigProblem } from '../settings.ts';
 /** Settings namespace this page edits (the Loader row id). */
 export declare const ROLE_CONFIG_NS = "role-config";
@@ -108,5 +108,5 @@ export declare class RoleConfigPageController {
 /** Convenience: one pool entry for a catalog row. */
 export declare function poolEntryFor(provider: string, model: string, description?: string): PoolModel;
 /** Convenience: the settings fields the page edits, in save order. */
-export type { Bindings, DelegateConfig, Exposure, Role, RoleGroup, RouteCondition, RouteMember, RouteRule, Routing };
+export type { Bindings, DelegateConfig, Exposure, Role, RouteCondition, RouteMember, RouteRule, Routing };
 //# sourceMappingURL=controller.d.ts.map

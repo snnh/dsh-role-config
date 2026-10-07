@@ -99,11 +99,10 @@ export class DelegationPlanner {
     if (requestedRole === undefined || requestedRole.length === 0) {
       return { chain: [], source: 'inherit' }
     }
-    const indexed = indexRoles(settings).get(requestedRole)
-    if (indexed === undefined) {
+    const role = indexRoles(settings).get(requestedRole)
+    if (role === undefined) {
       throw new Error(`unknown role "${requestedRole}"; call list_model_roles for the configured roles`)
     }
-    const { role } = indexed
     if (role.chain.length === 0) {
       throw new Error(`role "${requestedRole}" has no members yet; the operator must fill it in the settings page`)
     }

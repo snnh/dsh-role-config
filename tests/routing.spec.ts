@@ -100,13 +100,13 @@ describe('role-config routing rules', () => {
   it('indexes roles and pool entries from a settings snapshot', () => {
     const settings = plainSettings({
       pool: POOL,
-      groups: [
-        { id: 'g1', label: 'One', roles: [{ id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'text-only' }] }] },
-        { id: 'g2', label: 'Two', roles: [{ id: 'fast', label: 'Shadowed', chain: [] }] },
+      roles: [
+        { id: 'fast', label: 'Fast', chain: [{ provider: 'a', model: 'text-only' }] },
+        { id: 'fast', label: 'Shadowed', chain: [] },
       ],
     })
     const roles = indexRoles(settings)
-    expect(roles.get('fast')?.role.label).toBe('Fast')
+    expect(roles.get('fast')?.label).toBe('Fast')
     expect(indexPool(settings).size).toBe(3)
   })
 })

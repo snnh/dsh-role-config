@@ -10,7 +10,7 @@
  *
  * @module dsh-role-config/routing
  */
-import type { PoolModel, Role, RoleConfigSettings, RoleGroup, RouteCondition, RouteMember, RouteRule } from './settings.ts';
+import type { PoolModel, Role, RoleConfigSettings, RouteCondition, RouteMember, RouteRule } from './settings.ts';
 /** Where one routing decision came from. */
 export type RouteSource = 'rule' | 'chain' | 'ai';
 /** One resolved decision: which model serves, and why. */
@@ -42,20 +42,13 @@ export interface RouteFacts {
 export type FactsLookup = (route: RouteMember) => RouteFacts;
 /** Facts for a route nobody knows anything about. */
 export declare const EMPTY_FACTS: RouteFacts;
-/** One role together with the group that holds it. */
-export interface IndexedRole {
-    /** The role itself. */
-    readonly role: Role;
-    /** The group holding it. */
-    readonly group: RoleGroup;
-}
 /**
  * Index roles by id. A duplicate id keeps its first occurrence; the settings
  * validation reports the duplicate to the editor.
  * @param settings - current settings snapshot.
- * @returns role id to its role and group.
+ * @returns role id to its role.
  */
-export declare function indexRoles(settings: RoleConfigSettings): Map<string, IndexedRole>;
+export declare function indexRoles(settings: RoleConfigSettings): Map<string, Role>;
 /**
  * Index pool entries by route key.
  * @param settings - current settings snapshot.

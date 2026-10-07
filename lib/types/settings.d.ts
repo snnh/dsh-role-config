@@ -78,15 +78,6 @@ export interface Role {
     /** Condition rules evaluated before the chain head, in order. */
     readonly rules?: readonly RouteRule[];
 }
-/** A user-defined tag group ("tier shelf") holding roles. */
-export interface RoleGroup {
-    /** Stable id; unique among groups. */
-    readonly id: string;
-    /** Display name of the group. */
-    readonly label: string;
-    /** Roles in this group. */
-    readonly roles: readonly Role[];
-}
 /** One function a role may serve, or `off` for the harness default. */
 export interface BindingTarget {
     /** Whether the function keeps its harness default or follows a role. */
@@ -138,8 +129,8 @@ export interface DelegateConfig {
 export interface RoleConfigSettings {
     /** Models the main agent may name directly, with the user's descriptions. */
     readonly pool: readonly PoolModel[];
-    /** Role presets, grouped like the tiers they generalize. */
-    readonly groups: readonly RoleGroup[];
+    /** Role presets, listed in the order the operator arranged them. */
+    readonly roles: readonly Role[];
     /** Per-function role bindings. */
     readonly bindings: Bindings;
     /** Model-visible surfaces. */
@@ -168,104 +159,74 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
         description: z<string, string, "defined">;
         capabilities: z<string[], string[], "defined">;
     }>>[]>, "volatile-defined">;
-    groups: z<NoInfer<({
+    roles: z<NoInfer<({
         id?: string | null;
         label?: string | null;
-        roles?: ({
-            id?: string | null;
+        description?: string | null;
+        chain?: ({
+            provider?: string | null;
+            model?: string | null;
+        } & import("@deepseek-ai/cosmokit").Dict)[] | null;
+        rules?: ({
             label?: string | null;
-            description?: string | null;
-            chain?: ({
+            when?: ({
+                promptAny?: string[] | null;
+                promptRegex?: string | null;
+                modalities?: string[] | null;
+                minContextWindow?: number | null;
+                capabilities?: string[] | null;
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
+            use?: ({
                 provider?: string | null;
                 model?: string | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
-            rules?: ({
-                label?: string | null;
-                when?: ({
-                    promptAny?: string[] | null;
-                    promptRegex?: string | null;
-                    modalities?: string[] | null;
-                    minContextWindow?: number | null;
-                    capabilities?: string[] | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-                use?: ({
-                    provider?: string | null;
-                    model?: string | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
         } & import("@deepseek-ai/cosmokit").Dict)[] | null;
     } & import("@deepseek-ai/cosmokit").Dict)[]>, NoInfer<Schemastery.ObjectT<NoInfer<{
         id: z<string, string, "defined">;
         label: z<string, string, "defined">;
-        roles: z<({
-            id?: string | null;
-            label?: string | null;
-            description?: string | null;
-            chain?: ({
-                provider?: string | null;
-                model?: string | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
-            rules?: ({
-                label?: string | null;
-                when?: ({
-                    promptAny?: string[] | null;
-                    promptRegex?: string | null;
-                    modalities?: string[] | null;
-                    minContextWindow?: number | null;
-                    capabilities?: string[] | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-                use?: ({
-                    provider?: string | null;
-                    model?: string | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
+        description: z<string, string, "plain">;
+        chain: z<({
+            provider?: string | null;
+            model?: string | null;
         } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
-            id: z<string, string, "defined">;
-            label: z<string, string, "defined">;
-            description: z<string, string, "plain">;
-            chain: z<({
+            provider: z<string, string, "defined">;
+            model: z<string, string, "defined">;
+        }>>[], "defined">;
+        rules: z<({
+            label?: string | null;
+            when?: ({
+                promptAny?: string[] | null;
+                promptRegex?: string | null;
+                modalities?: string[] | null;
+                minContextWindow?: number | null;
+                capabilities?: string[] | null;
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
+            use?: ({
                 provider?: string | null;
                 model?: string | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
+        } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
+            label: z<string, string, "plain">;
+            when: z<Schemastery.ObjectS<NoInfer<{
+                promptAny: z<string[], string[], "defined">;
+                promptRegex: z<string, string, "plain">;
+                modalities: z<string[], string[], "defined">;
+                minContextWindow: z<number, number, "defined">;
+                capabilities: z<string[], string[], "defined">;
+            }>>, Schemastery.ObjectT<NoInfer<{
+                promptAny: z<string[], string[], "defined">;
+                promptRegex: z<string, string, "plain">;
+                modalities: z<string[], string[], "defined">;
+                minContextWindow: z<number, number, "defined">;
+                capabilities: z<string[], string[], "defined">;
+            }>>, "defined">;
+            use: z<Schemastery.ObjectS<NoInfer<{
                 provider: z<string, string, "defined">;
                 model: z<string, string, "defined">;
-            }>>[], "defined">;
-            rules: z<({
-                label?: string | null;
-                when?: ({
-                    promptAny?: string[] | null;
-                    promptRegex?: string | null;
-                    modalities?: string[] | null;
-                    minContextWindow?: number | null;
-                    capabilities?: string[] | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-                use?: ({
-                    provider?: string | null;
-                    model?: string | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
-                label: z<string, string, "plain">;
-                when: z<Schemastery.ObjectS<NoInfer<{
-                    promptAny: z<string[], string[], "defined">;
-                    promptRegex: z<string, string, "plain">;
-                    modalities: z<string[], string[], "defined">;
-                    minContextWindow: z<number, number, "defined">;
-                    capabilities: z<string[], string[], "defined">;
-                }>>, Schemastery.ObjectT<NoInfer<{
-                    promptAny: z<string[], string[], "defined">;
-                    promptRegex: z<string, string, "plain">;
-                    modalities: z<string[], string[], "defined">;
-                    minContextWindow: z<number, number, "defined">;
-                    capabilities: z<string[], string[], "defined">;
-                }>>, "defined">;
-                use: z<Schemastery.ObjectS<NoInfer<{
-                    provider: z<string, string, "defined">;
-                    model: z<string, string, "defined">;
-                }>>, Schemastery.ObjectT<NoInfer<{
-                    provider: z<string, string, "defined">;
-                    model: z<string, string, "defined">;
-                }>>, "defined">;
-            }>>[], "defined">;
+            }>>, Schemastery.ObjectT<NoInfer<{
+                provider: z<string, string, "defined">;
+                model: z<string, string, "defined">;
+            }>>, "defined">;
         }>>[], "defined">;
     }>>[]>, "volatile-defined">;
     bindings: z<NoInfer<Schemastery.ObjectS<NoInfer<{
@@ -358,104 +319,74 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
         description: z<string, string, "defined">;
         capabilities: z<string[], string[], "defined">;
     }>>[]>, "volatile-defined">;
-    groups: z<NoInfer<({
+    roles: z<NoInfer<({
         id?: string | null;
         label?: string | null;
-        roles?: ({
-            id?: string | null;
+        description?: string | null;
+        chain?: ({
+            provider?: string | null;
+            model?: string | null;
+        } & import("@deepseek-ai/cosmokit").Dict)[] | null;
+        rules?: ({
             label?: string | null;
-            description?: string | null;
-            chain?: ({
+            when?: ({
+                promptAny?: string[] | null;
+                promptRegex?: string | null;
+                modalities?: string[] | null;
+                minContextWindow?: number | null;
+                capabilities?: string[] | null;
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
+            use?: ({
                 provider?: string | null;
                 model?: string | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
-            rules?: ({
-                label?: string | null;
-                when?: ({
-                    promptAny?: string[] | null;
-                    promptRegex?: string | null;
-                    modalities?: string[] | null;
-                    minContextWindow?: number | null;
-                    capabilities?: string[] | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-                use?: ({
-                    provider?: string | null;
-                    model?: string | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
         } & import("@deepseek-ai/cosmokit").Dict)[] | null;
     } & import("@deepseek-ai/cosmokit").Dict)[]>, NoInfer<Schemastery.ObjectT<NoInfer<{
         id: z<string, string, "defined">;
         label: z<string, string, "defined">;
-        roles: z<({
-            id?: string | null;
-            label?: string | null;
-            description?: string | null;
-            chain?: ({
-                provider?: string | null;
-                model?: string | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
-            rules?: ({
-                label?: string | null;
-                when?: ({
-                    promptAny?: string[] | null;
-                    promptRegex?: string | null;
-                    modalities?: string[] | null;
-                    minContextWindow?: number | null;
-                    capabilities?: string[] | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-                use?: ({
-                    provider?: string | null;
-                    model?: string | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[] | null;
+        description: z<string, string, "plain">;
+        chain: z<({
+            provider?: string | null;
+            model?: string | null;
         } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
-            id: z<string, string, "defined">;
-            label: z<string, string, "defined">;
-            description: z<string, string, "plain">;
-            chain: z<({
+            provider: z<string, string, "defined">;
+            model: z<string, string, "defined">;
+        }>>[], "defined">;
+        rules: z<({
+            label?: string | null;
+            when?: ({
+                promptAny?: string[] | null;
+                promptRegex?: string | null;
+                modalities?: string[] | null;
+                minContextWindow?: number | null;
+                capabilities?: string[] | null;
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
+            use?: ({
                 provider?: string | null;
                 model?: string | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
+            } & import("@deepseek-ai/cosmokit").Dict) | null;
+        } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
+            label: z<string, string, "plain">;
+            when: z<Schemastery.ObjectS<NoInfer<{
+                promptAny: z<string[], string[], "defined">;
+                promptRegex: z<string, string, "plain">;
+                modalities: z<string[], string[], "defined">;
+                minContextWindow: z<number, number, "defined">;
+                capabilities: z<string[], string[], "defined">;
+            }>>, Schemastery.ObjectT<NoInfer<{
+                promptAny: z<string[], string[], "defined">;
+                promptRegex: z<string, string, "plain">;
+                modalities: z<string[], string[], "defined">;
+                minContextWindow: z<number, number, "defined">;
+                capabilities: z<string[], string[], "defined">;
+            }>>, "defined">;
+            use: z<Schemastery.ObjectS<NoInfer<{
                 provider: z<string, string, "defined">;
                 model: z<string, string, "defined">;
-            }>>[], "defined">;
-            rules: z<({
-                label?: string | null;
-                when?: ({
-                    promptAny?: string[] | null;
-                    promptRegex?: string | null;
-                    modalities?: string[] | null;
-                    minContextWindow?: number | null;
-                    capabilities?: string[] | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-                use?: ({
-                    provider?: string | null;
-                    model?: string | null;
-                } & import("@deepseek-ai/cosmokit").Dict) | null;
-            } & import("@deepseek-ai/cosmokit").Dict)[], Schemastery.ObjectT<NoInfer<{
-                label: z<string, string, "plain">;
-                when: z<Schemastery.ObjectS<NoInfer<{
-                    promptAny: z<string[], string[], "defined">;
-                    promptRegex: z<string, string, "plain">;
-                    modalities: z<string[], string[], "defined">;
-                    minContextWindow: z<number, number, "defined">;
-                    capabilities: z<string[], string[], "defined">;
-                }>>, Schemastery.ObjectT<NoInfer<{
-                    promptAny: z<string[], string[], "defined">;
-                    promptRegex: z<string, string, "plain">;
-                    modalities: z<string[], string[], "defined">;
-                    minContextWindow: z<number, number, "defined">;
-                    capabilities: z<string[], string[], "defined">;
-                }>>, "defined">;
-                use: z<Schemastery.ObjectS<NoInfer<{
-                    provider: z<string, string, "defined">;
-                    model: z<string, string, "defined">;
-                }>>, Schemastery.ObjectT<NoInfer<{
-                    provider: z<string, string, "defined">;
-                    model: z<string, string, "defined">;
-                }>>, "defined">;
-            }>>[], "defined">;
+            }>>, Schemastery.ObjectT<NoInfer<{
+                provider: z<string, string, "defined">;
+                model: z<string, string, "defined">;
+            }>>, "defined">;
         }>>[], "defined">;
     }>>[]>, "volatile-defined">;
     bindings: z<NoInfer<Schemastery.ObjectS<NoInfer<{

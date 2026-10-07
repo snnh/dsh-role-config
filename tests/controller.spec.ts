@@ -52,7 +52,7 @@ function fakeScope(writable = true): {
 
 function hostContext(): ClientContext {
   return {
-    remote: { session: { modelCatalog: () => Promise.resolve({ ok: true, value: { groups: [] } }) } },
+    remote: { session: { modelCatalog: () => Promise.resolve({ ok: true, value: { roles: [] } }) } },
   } as unknown as ClientContext
 }
 

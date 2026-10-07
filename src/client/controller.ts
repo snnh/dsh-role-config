@@ -204,6 +204,9 @@ export class RoleConfigPageController {
   private edit(update: (draft: RoleConfigSettings) => RoleConfigSettings): void {
     const snapshot = this.scope.getSnapshot()
     if (this.disposed || !snapshot.writable || this.saving) return
+    // Staging needs a value to stage over: seeding from a form that has not
+    // loaded yet would freeze the page on a draft the Host never sent.
+    if (snapshot.value === undefined) return
     this.draft = update(cloneSettings(this.staged()))
     this.publish()
   }
@@ -248,7 +251,12 @@ export class RoleConfigPageController {
 
   /** Build the picker: catalog rows plus pool routes the adapter dropped. */
   private catalog(): CatalogGroup[] {
-    const settings = this.staged()
+    // A read must never seed the draft: the picker is built from inside the
+    // constructor's first projection, before the Host's value arrives, and a
+    // draft seeded from that empty gap outranks the stored settings for the
+    // page's whole lifetime — the page then renders an empty pool and a save
+    // writes that empty draft over the stored one.
+    const settings = this.draft ?? this.current()
     const selected = new Set(settings.pool.map(entry => `${entry.provider}\u0000${entry.model}`))
     const groups: CatalogGroup[] = this.catalogGroups.map(group => ({
       provider: group.id,

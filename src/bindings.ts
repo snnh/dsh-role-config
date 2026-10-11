@@ -55,8 +55,15 @@ export interface BindableRow {
   readonly feature: BindableFeature
 }
 
-/** The config editor face this module needs (a subset of `ctx.configEditor`). */
+/**
+ * The config editor face this module needs (a subset of `ctx.configEditor`).
+ */
 export interface BindingEditor {
+  /**
+   * The rows this editor will accept an edit for: profile-level rows, unique by
+   * id. Absent on an older harness, when the Loader's own list is used instead.
+   */
+  entries?(): readonly unknown[]
   /**
    * Validate, persist, and reconcile one row's next config.
    * @param entry - the Loader entry to edit.
@@ -66,18 +73,29 @@ export interface BindingEditor {
 }
 
 /**
- * Find the live rows a binding may write.
+ * Find the rows a binding may write.
+ *
+ * The candidate set is the config editor's own when it publishes one: that is
+ * exactly what `edit()` accepts. A row outside it — a disabled one, or one a
+ * group mounts beneath itself — is activated but uneditable, and offering it
+ * would fail every reconcile with "no longer available" instead of leaving the
+ * feature on its own default. An inactive row is skipped for the same reason.
+ *
  * @param ctx - the plugin's Host context (the Loader is read when present).
  * @param feature - the feature to look for.
- * @returns one row per live module, outermost first.
+ * @param editor - the config editor, when one is mounted.
+ * @returns one row per editable module, outermost first.
  */
-export function findBindableRows(ctx: Context, feature: BindableFeature): BindableRow[] {
+export function findBindableRows(ctx: Context, feature: BindableFeature, editor?: BindingEditor): BindableRow[] {
   const loader = ctx.get('loader')
   if (loader === undefined) return []
+  const candidates = editor?.entries?.() ?? loader.entries()
   const rows: BindableRow[] = []
-  for (const entry of loader.entries()) {
-    const options = (entry as { options?: { id?: unknown; name?: unknown } }).options
+  for (const entry of candidates) {
+    const manifest = entry as { options?: { id?: unknown; name?: unknown }; fiber?: unknown }
+    const options = manifest.options
     if (options === undefined || typeof options.name !== 'string' || !feature.modules.includes(options.name)) continue
+    if (manifest.fiber === undefined) continue
     rows.push({ entry, id: typeof options.id === 'string' ? options.id : options.name, feature })
   }
   return rows
@@ -134,7 +152,7 @@ export async function applyBindings(options: {
   for (const feature of BINDABLE_FEATURES) {
     const target = settings.bindings[feature.key]
     const route = resolveBindingRoute(settings, capabilities, target)
-    for (const row of findBindableRows(ctx, feature)) {
+    for (const row of findBindableRows(ctx, feature, editor)) {
       const [providerField, modelField] = feature.fields
       const desiredProvider = route?.provider
       const desiredModel = route?.model
@@ -161,10 +179,10 @@ export async function applyBindings(options: {
         )
       }
     }
-    if (target.kind === 'role' && route !== undefined && findBindableRows(ctx, feature).length === 0) {
-      warn('no loaded row carries %s; the binding stays dormant', feature.label)
+    if (target.kind === 'role' && route !== undefined && findBindableRows(ctx, feature, editor).length === 0) {
+      warn('no editable row carries %s; the binding stays dormant', feature.label)
     }
-    if (target.kind === 'role' && route === undefined && findBindableRows(ctx, feature).length > 0) {
+    if (target.kind === 'role' && route === undefined && findBindableRows(ctx, feature, editor).length > 0) {
       warn('role "%s" bound to %s has no members; the feature keeps its own default', target.role ?? '', feature.label)
     }
   }

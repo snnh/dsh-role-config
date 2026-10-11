@@ -11,6 +11,7 @@ export type RoleConfigKey =
   | 'rulesTitle' | 'rulesHint' | 'ruleAdd' | 'ruleRemove' | 'ruleKeywords' | 'ruleRegex'
   | 'ruleModalities' | 'ruleContext' | 'ruleTags' | 'ruleUse'
   | 'switchesTitle' | 'switchesList' | 'switchesSessionStart' | 'switchesDelegate' | 'switchesFallback'
+  | 'switchesRestoreOfficial' | 'switchesRestoreHint'
   | 'switchesAi' | 'switchesAiProvider' | 'switchesAiModel' | 'switchesAiTimeout'
   | 'delegateProvider' | 'delegateToolName'
   | 'bindingCompact' | 'bindingSessionTitle' | 'bindingDelegateDefault' | 'bindingOff'
@@ -58,6 +59,10 @@ export const en: Record<RoleConfigKey, string> = {
   switchesList: 'List roles and models on request (list_model_roles)',
   switchesSessionStart: 'Insert the descriptions at the start of every session',
   switchesDelegate: 'Register the role-routing delegation tool',
+  switchesRestoreOfficial: 'Restore the official delegation tool',
+  switchesRestoreHint: 'Stops the takeover and saves at once: this plugin stops registering the tool name it '
+    + 'shadowed, and an official subagent row that was disabled to free that name is re-enabled. New sessions see the '
+    + 'official tool again.',
   switchesFallback: 'Walk the role chain after a terminal failure',
   switchesAi: 'Ask a router model when no rule matched',
   switchesAiProvider: 'Router provider',
@@ -120,6 +125,8 @@ export const zh: Record<RoleConfigKey, string> = {
   switchesList: '按需列出角色与模型（list_model_roles）',
   switchesSessionStart: '在每个会话开头插入描述',
   switchesDelegate: '注册按角色路由的委派工具',
+  switchesRestoreOfficial: '恢复官方委派工具',
+  switchesRestoreHint: '立即停止接管并保存：本插件不再注册它遮蔽的工具名，为使该名字让位而被停用的官方 subagent 行会被重新启用；新会话重新看到官方工具。',
   switchesFallback: '终局失败后沿角色链回退',
   switchesAi: '没有规则命中时询问路由模型',
   switchesAiProvider: '路由 provider',

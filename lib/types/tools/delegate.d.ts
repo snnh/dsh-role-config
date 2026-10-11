@@ -18,6 +18,12 @@ import type { Context } from '@deepseek-ai/cordis';
 import type { FailoverRegistry } from '../failover.ts';
 import type { DelegationPlanner } from '../plan.ts';
 import type { RoleConfigSettings } from '../settings.ts';
+declare module '@deepseek-ai/dsh-jobs' {
+    interface JobKindMap {
+        /** One background delegation this plugin's tool started. */
+        subagent: 'subagent';
+    }
+}
 /** Services the delegation tool reads at call time. */
 export interface DelegateDeps {
     /** Current settings snapshot reader. */

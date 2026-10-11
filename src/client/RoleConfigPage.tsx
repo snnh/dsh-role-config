@@ -69,7 +69,7 @@ export function RoleConfigPage(props: RoleConfigPageProps) {
       <p style={muted}>{t('description')}</p>
       <PoolSection t={t} state={state} edit={props.edit} retryCatalog={props.retryCatalog} headingId={headingId} />
       <RolesSection t={t} state={state} edit={props.edit} headingId={headingId} />
-      <SwitchSection t={t} state={state} edit={props.edit} headingId={headingId} />
+      <SwitchSection t={t} state={state} edit={props.edit} restoreOfficialTool={props.restoreOfficialTool} headingId={headingId} />
       {state.problems.length > 0
         ? (
           <section aria-labelledby={`${headingId}-problems`}>
@@ -331,7 +331,13 @@ function RolesSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit; 
 }
 
 /** The switches, the delegation wiring, and the AI routing stage. */
-function SwitchSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit; headingId: string }) {
+function SwitchSection(props: {
+  t: Copy
+  state: RoleConfigPageState
+  edit: Edit
+  restoreOfficialTool: RoleConfigPageFace['restoreOfficialTool']
+  headingId: string
+}) {
   const { t, state } = props
   const settings: RoleConfigSettings = state.draft
   const set = (change: (draft: RoleConfigSettings) => RoleConfigSettings): void => { props.edit(change) }
@@ -351,6 +357,16 @@ function SwitchSection(props: { t: Copy; state: RoleConfigPageState; edit: Edit;
       {checkbox('switchesList', settings.exposure.listTool, next => { set(draft => ({ ...draft, exposure: { ...draft.exposure, listTool: next } })) })}
       {checkbox('switchesSessionStart', settings.exposure.sessionStart, next => { set(draft => ({ ...draft, exposure: { ...draft.exposure, sessionStart: next } })) })}
       {checkbox('switchesDelegate', settings.exposure.delegateTool, next => { set(draft => ({ ...draft, exposure: { ...draft.exposure, delegateTool: next } })) })}
+      <div style={inline}>
+        <button
+          type="button"
+          disabled={state.saving || !settings.exposure.delegateTool}
+          onClick={props.restoreOfficialTool}
+        >
+          {t('switchesRestoreOfficial')}
+        </button>
+        <span style={muted}>{t('switchesRestoreHint')}</span>
+      </div>
       {checkbox('switchesFallback', settings.routing.fallback, next => { set(draft => ({ ...draft, routing: { ...draft.routing, fallback: next } })) })}
       {checkbox('switchesAi', settings.routing.aiEnabled, next => { set(draft => ({ ...draft, routing: { ...draft.routing, aiEnabled: next } })) })}
       <div style={inline}>

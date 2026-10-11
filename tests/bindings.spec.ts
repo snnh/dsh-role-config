@@ -27,7 +27,10 @@ const ROLES = {
 
 /** A loader entry named by the compaction module. */
 function compactionEntry(): unknown {
-  return { options: { id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic', config: {} } }
+  return {
+    options: { id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic', config: {} },
+    fiber: {},
+  }
 }
 
 describe('role-config function bindings', () => {
@@ -80,6 +83,30 @@ describe('role-config function bindings', () => {
       label: 'context compaction',
     })
     expect(rows.map(row => row.id)).toEqual(['compaction-basic'])
+  })
+
+  it('leaves a row the editor will not accept on the feature default', async () => {
+    const ctx = new Context()
+    const edits: unknown[] = []
+    const warnings: string[] = []
+    // A row a group mounts is live but outside the editor's profile rows; the
+    // editor rejects it, so the binding must not offer it.
+    ctx.provide('loader', { entries: () => [compactionEntry()] } as never)
+    ctx.provide('configEditor', {
+      entries: () => [],
+      edit: () => {
+        edits.push('edit')
+        return Promise.resolve()
+      },
+    } as never)
+    await applyBindings({
+      ctx,
+      settings: plainSettings(ROLES) as RoleConfigSettings,
+      capabilities: new CapabilityDirectory(undefined),
+      warn: message => { warnings.push(message) },
+    })
+    expect(edits).toEqual([])
+    expect(warnings).toContain('no editable row carries %s; the binding stays dormant')
   })
 
   it('keeps quiet when nothing is bound', async () => {

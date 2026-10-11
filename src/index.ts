@@ -25,6 +25,7 @@ import { CapabilityDirectory } from './capabilities.ts'
 import { FailoverRegistry, installFailover } from './failover.ts'
 import { collisionAdvice, findOfficialModelSelectionRows } from './official-tool.ts'
 import { DelegationPlanner } from './plan.ts'
+import { restoreOfficialTool } from './restore.ts'
 import { registerDelegateTool } from './tools/delegate.ts'
 import type { RoleCatalogSource } from './tools/list-model-roles.ts'
 import { registerListRolesTool } from './tools/list-model-roles.ts'
@@ -98,6 +99,14 @@ export function apply(ctx: Context, config: Config): void {
     console.warn(`[role-config] ${message}`, ...args)
   }
 
+  /** One operator-facing success line; the takeover switch reports its repair here. */
+  const info = (message: string, ...args: unknown[]): void => {
+    ctx.logger.info(`role-config: ${message}`, ...args)
+    // The shipped compositions mount no logger exporter, so a line the
+    // operator must be able to see also reaches the process console.
+    console.info(`[role-config] ${message}`, ...args)
+  }
+
   const source: RoleCatalogSource = {
     settings: () => settingsSnapshot(config),
     problems: () => inspectRoleConfig(settingsSnapshot(config)),
@@ -121,6 +130,24 @@ export function apply(ctx: Context, config: Config): void {
       await applyBindings({ ctx, settings, capabilities, warn })
     }).catch((error: unknown) => {
       warn('function binding sync failed: %s', error)
+    })
+  }
+
+  // Switching the takeover off must restore the official tool, not remove
+  // delegation: a composition that disabled the official row for this plugin
+  // is repaired before the next agent composes. The scan is idempotent and
+  // writes nothing once no marker is left.
+  let restoreSync: Promise<void> = Promise.resolve()
+  const syncOfficialTool = (): void => {
+    restoreSync = restoreSync.then(async () => {
+      const settings = settingsSnapshot(config)
+      if (settings.exposure.delegateTool) return
+      const freed = await restoreOfficialTool({ ctx, toolName: settings.delegate.toolName, warn })
+      if (freed.length > 0) {
+        info('restored the official delegation tool on row(s) %s', freed.map(id => `"${id}"`).join(', '))
+      }
+    }).catch((error: unknown) => {
+      warn('could not restore the official delegation tool: %s', error)
     })
   }
 
@@ -213,9 +240,11 @@ export function apply(ctx: Context, config: Config): void {
   ctx.on('loader/volatile-update', () => {
     for (const agent of ctx.agents.list()) reconcile(agent)
     syncBindings()
+    syncOfficialTool()
   })
 
   syncBindings()
+  syncOfficialTool()
   ctx.on('llm/adapters-updated', () => { syncBindings() })
   ctx.logger.info('role-config: mounted')
 }

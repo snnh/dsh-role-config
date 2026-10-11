@@ -18,6 +18,8 @@ let counter = 0
 
 /** What one fake child run captured. */
 interface StartedRun {
+  /** Activation label the request carried; the seam owns it, not the request. */
+  label: string
   readonly providerName: string
   readonly request: Record<string, unknown>
 }
@@ -48,16 +50,18 @@ async function harness(settings: RoleConfigSettings, options: { jobs?: boolean }
   ctx.provide('subagents', {
     getProvider: (name: string) => (name === 'spawn' ? { name: 'spawn' } : undefined),
     resolveMaxDepth: () => 1,
-    start: (providerName: string, request: Record<string, unknown>) => {
-      started.push({ providerName, request })
+    startActivation: (spec: { provider: string; label: string; request: Record<string, unknown> }) => {
+      started.push({ providerName: spec.provider, label: spec.label, request: spec.request })
       return Promise.resolve({
-        id: 'child-1',
-        localAgent: child,
+        childId: 'child-1',
         result: Promise.resolve({ output: [{ type: 'text', text: 'done' }], stopReason: 'completed' }),
         dispose: () => Promise.resolve(),
       })
     },
   } as never)
+  // The seam hands out the child's id; the plugin resolves the live Agent for
+  // the operator's failover chain, exactly as the running harness does.
+  ctx.provide('agents', { get: (id: string) => (id === 'child-1' ? child : undefined) } as never)
   if (options.jobs === true) {
     ctx.provide('jobs', {
       start: (spec: { kind: string; label: string; owner: string }) => `job-${spec.kind}-${spec.owner}`,
@@ -136,7 +140,7 @@ describe('role-config delegation tool', () => {
     expect(started).toHaveLength(1)
     expect(started[0]?.providerName).toBe('spawn')
     expect(started[0]?.request.agentOptions).toEqual({ provider: 'a', model: 'cheap' })
-    expect(started[0]?.request.label).toBe('tidy docs')
+    expect(started[0]?.label).toBe('tidy docs')
     expect(started[0]?.request.prompt).toEqual([{ type: 'text', text: 'tidy the docs' }])
     // The child is tracked for priority failover.
     expect(failover.tracks(child)).toBe(true)

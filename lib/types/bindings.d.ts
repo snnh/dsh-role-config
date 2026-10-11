@@ -35,8 +35,15 @@ export interface BindableRow {
     /** Feature this row belongs to. */
     readonly feature: BindableFeature;
 }
-/** The config editor face this module needs (a subset of `ctx.configEditor`). */
+/**
+ * The config editor face this module needs (a subset of `ctx.configEditor`).
+ */
 export interface BindingEditor {
+    /**
+     * The rows this editor will accept an edit for: profile-level rows, unique by
+     * id. Absent on an older harness, when the Loader's own list is used instead.
+     */
+    entries?(): readonly unknown[];
     /**
      * Validate, persist, and reconcile one row's next config.
      * @param entry - the Loader entry to edit.
@@ -45,12 +52,20 @@ export interface BindingEditor {
     edit(entry: never, change: (current: Record<string, unknown>, inherited: Record<string, unknown>) => Record<string, unknown>): Promise<void>;
 }
 /**
- * Find the live rows a binding may write.
+ * Find the rows a binding may write.
+ *
+ * The candidate set is the config editor's own when it publishes one: that is
+ * exactly what `edit()` accepts. A row outside it — a disabled one, or one a
+ * group mounts beneath itself — is activated but uneditable, and offering it
+ * would fail every reconcile with "no longer available" instead of leaving the
+ * feature on its own default. An inactive row is skipped for the same reason.
+ *
  * @param ctx - the plugin's Host context (the Loader is read when present).
  * @param feature - the feature to look for.
- * @returns one row per live module, outermost first.
+ * @param editor - the config editor, when one is mounted.
+ * @returns one row per editable module, outermost first.
  */
-export declare function findBindableRows(ctx: Context, feature: BindableFeature): BindableRow[];
+export declare function findBindableRows(ctx: Context, feature: BindableFeature, editor?: BindingEditor): BindableRow[];
 /**
  * Resolve the route a binding should write, preferring a member an adapter
  * currently serves.

@@ -62,6 +62,12 @@ export interface RoleConfigPageFace {
     edit: (update: (draft: RoleConfigSettings) => RoleConfigSettings) => void;
     /** Persist the staged draft. */
     save: () => void;
+    /**
+     * Stop the routing takeover and hand the delegation tool back to the
+     * official plugin: stage the switch off and save in one click, so the Host
+     * can re-enable an official row the takeover had disabled.
+     */
+    restoreOfficialTool: () => void;
     /** Drop the staged draft. */
     discard: () => void;
 }
@@ -98,6 +104,13 @@ export declare class RoleConfigPageController {
     private current;
     private staged;
     private edit;
+    /**
+     * One click that ends the takeover: the staged switch goes off and the saved
+     * revision follows immediately, which is the signal the Host acts on. Staging
+     * and saving in the same tick is safe because `save()` reads the staged
+     * draft, and it keeps the button honest about being a single action.
+     */
+    private restoreOfficialTool;
     private discard;
     private save;
     /** Build the picker: catalog rows plus pool routes the adapter dropped. */

@@ -52,6 +52,15 @@ must carry `modelSelectionSettings: false`:
     modelSelectionSettings: false
 ```
 
+Leave that row ENABLED. Disabling it to free the name is a one-way trade: with
+this plugin switched off afterwards, the deployment has no delegation tool at
+all. Nothing needs it: the routed registration is nearer than the preset scope,
+so it wins the name while the official tool stays mounted and serves.
+Switching the takeover off (`delegateTool: false`, or the settings page's
+**Restore the official delegation tool** button, which stages that switch and
+saves in one click) hands the name back, and the plugin removes a leftover
+`disabled: true` from the official row while it is at it.
+
 A profile patch reaches the rows the profile declares. The shipped presets
 declare their own, nested inside a `cordis:group`, and a patch replaces a
 row's whole config — so restate the preset row with that one field flipped,

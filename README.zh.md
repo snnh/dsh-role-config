@@ -34,6 +34,8 @@ dsh plugin --profile <profile> add github:snnh/dsh-role-config
     modelSelectionSettings: false
 ```
 
+那一行必须保持**启用**。为了腾出名字而停用它是一笔单向交易：此后一旦停用本插件，部署里就一个委派工具都没有了。其实并不需要：可路由的注册比预设作用域更靠内，因此它赢得这个名字，而官方工具依旧挂载着、随时可用。关闭接管（`delegateTool: false`，或设置页的**恢复官方委派工具**按钮——它一步完成"关开关并保存"）就把名字交还回去，插件顺手清掉官方行上遗留的 `disabled: true`。
+
 profile patch 只能改到 profile 自己声明的行；出厂预设的行嵌在 `cordis:group` 里，而 patch 会整体替换该行 config，所以需要像 harness 自己的 overlay 那样重述预设行、只翻这一个字段（出厂清单见 `packages/bundle/web-app/presets/standard.patch.yml`，它变化时请同步这份副本）：
 
 ```yaml

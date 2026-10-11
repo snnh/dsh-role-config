@@ -52,7 +52,7 @@ function fakeScope(writable = true): {
 
 function hostContext(): ClientContext {
   return {
-    remote: { session: { modelCatalog: () => Promise.resolve({ ok: true, value: { roles: [] } }) } },
+    remote: { session: { modelCatalog: () => Promise.resolve({ ok: true, value: { groups: [] } }) } },
   } as unknown as ClientContext
 }
 
@@ -82,6 +82,22 @@ describe('role-config page controller staging', () => {
     expect(state.draft.exposure.listTool).toBe(false)
     expect(state.draft.pool).toHaveLength(2)
     expect(state.dirty).toBe(true)
+    controller.dispose()
+  })
+
+  it('restores the official tool in one click: stage the switch off and save', async () => {
+    const form = fakeScope()
+    const controller = new RoleConfigPageController(form.scope, hostContext())
+    const face = controller.inject()
+    form.deliver(STORED)
+    expect(STORED.exposure.delegateTool).toBe(true)
+    face.restoreOfficialTool()
+    // The click is the save: no second user action, and the written revision
+    // carries the switch off, which is the signal the Host repairs on.
+    expect(form.writes).toBe(1)
+    await vi.waitFor(() => {
+      expect(face.hooks.roleConfigPage.getSnapshot().saving).toBe(false)
+    })
     controller.dispose()
   })
 })

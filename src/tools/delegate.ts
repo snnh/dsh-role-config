@@ -18,8 +18,8 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
-import { parentAgentOptionsForDelegation, settleRun } from '@deepseek-ai/dsh-subagent'
-import type { SubagentRun, SubagentStopReason } from '@deepseek-ai/dsh-subagent'
+import { parentAgentOptionsForDelegation } from '@deepseek-ai/dsh-subagent'
+import type { SubagentActivation, SubagentStopReason } from '@deepseek-ai/dsh-subagent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { JobOutcome } from '@deepseek-ai/dsh-jobs'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
@@ -27,6 +27,13 @@ import type { FailoverRegistry } from '../failover.ts'
 import type { DelegationPlanner } from '../plan.ts'
 import type { RoleConfigSettings } from '../settings.ts'
 import { routeLabel } from '../settings.ts'
+
+declare module '@deepseek-ai/dsh-jobs' {
+  interface JobKindMap {
+    /** One background delegation this plugin's tool started. */
+    subagent: 'subagent'
+  }
+}
 
 /** Services the delegation tool reads at call time. */
 export interface DelegateDeps {
@@ -155,14 +162,15 @@ export function registerDelegateTool(ctx: Context, deps: DelegateDeps): () => vo
         : { ...parentOptions, provider: plan.route.provider, model: plan.route.model }
       const maxDepth = ctx.subagents.resolveMaxDepth(undefined)
       const request = {
-        label: args.description,
         prompt: [{ type: 'text', text: args.prompt }] as ContentBlock[],
         parent,
         ...childOptions === undefined ? {} : { agentOptions: childOptions },
         ...maxDepth === undefined ? {} : { maxDepth },
       }
-      const track = (run: SubagentRun): void => {
-        const child = run.localAgent
+      // The activation seam owns the child's identity; the live Agent is
+      // resolved from it for the operator's failover chain.
+      const track = (run: SubagentActivation): void => {
+        const child = ctx.get('agents')?.get(run.childId)
         if (child === undefined || plan.role === undefined) return
         deps.failover.track(child, plan.role, plan.chain)
       }
@@ -179,7 +187,15 @@ export function registerDelegateTool(ctx: Context, deps: DelegateDeps): () => vo
           owner: parent.id,
           run: () => {
             const controller = new AbortController()
-            const start = ctx.subagents.start(providerName, { ...request, signal: controller.signal })
+            const start = ctx.subagents.startActivation({
+              provider: providerName,
+              label,
+              request,
+              signal: controller.signal,
+              // The job owns delivery: the child's report reaches the model
+              // through this tool's outcome, never a second notification.
+              delivery: 'caller',
+            })
             return {
               cancel: (reason?: string) => {
                 controller.abort(reason ?? 'background subagent task killed')
@@ -191,7 +207,13 @@ export function registerDelegateTool(ctx: Context, deps: DelegateDeps): () => vo
         return Promise.resolve({ kind: 'background' as const, jobId })
       }
 
-      const run = await ctx.subagents.start(providerName, { ...request, signal: exec.signal })
+      const run = await ctx.subagents.startActivation({
+        provider: providerName,
+        label: args.description,
+        request,
+        signal: exec.signal,
+        delivery: 'caller',
+      })
       track(run)
       return settleForeground(run)
     },
@@ -230,7 +252,7 @@ function stopReasonError(result: { stopReason: SubagentStopReason; diagnostic?: 
 }
 
 /** Collect and release one foreground run. */
-async function settleForeground(run: SubagentRun): Promise<
+async function settleForeground(run: SubagentActivation): Promise<
   { kind: 'foreground'; runId: string; output: JsonValue[] }
 > {
   const result = await run.result
@@ -244,19 +266,42 @@ async function settleForeground(run: SubagentRun): Promise<
     throw disposalError
   }
   if (error !== undefined) throw new Error(error)
-  return { kind: 'foreground', runId: run.id, output: result.output as unknown as JsonValue[] }
+  return { kind: 'foreground', runId: run.childId, output: result.output as unknown as JsonValue[] }
+}
+
+/**
+ * Settle one background activation into a job outcome.
+ *
+ * The harness ships no settle helper for an activation — its out-of-process
+ * `settleRunResult` takes a parts object, not an activation — so this mirrors
+ * {@link settleForeground} and maps the same failure reasons onto the job
+ * vocabulary the registered outcome is read through.
+ */
+async function settleBackground(run: SubagentActivation): Promise<JobOutcome> {
+  const result = await run.result
+  const error = stopReasonError(result)
+  try {
+    await run.dispose()
+  } catch (disposalError: unknown) {
+    if (error !== undefined) {
+      throw new AggregateError([new Error(error), disposalError], `subagent run failed: ${error}; dispose failed`)
+    }
+    throw disposalError
+  }
+  if (error !== undefined) return { status: 'failed', detail: error }
+  return { status: 'completed', result: outputText(result.output as unknown as JsonValue[]) }
 }
 
 /** Settle one background start into a job outcome. */
 async function settleStarted(
-  start: Promise<SubagentRun>,
+  start: Promise<SubagentActivation>,
   signal: AbortSignal,
-  track: (run: SubagentRun) => void,
+  track: (run: SubagentActivation) => void,
 ): Promise<JobOutcome> {
   try {
     const run = await start
     track(run)
-    return await settleRun(run)
+    return await settleBackground(run)
   } catch (error: unknown) {
     return signal.aborted && !(error instanceof AggregateError)
       ? { status: 'killed', detail: String(error) }

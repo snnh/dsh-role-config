@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createScope } from '@deepseek-ai/dsh-scope'
@@ -6,6 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { apply, settingsSnapshot } from '../src/index.ts'
+import { OFFICIAL_TOOL_PACKAGE } from '../src/official-tool.ts'
 import type { Config } from '../src/index.ts'
 import type { RoleConfigSettings } from '../src/settings.ts'
 import { plainSettings } from './fixtures.ts'
@@ -29,7 +30,7 @@ function fakeAgent(ctx: Context, id: string, header: Record<string, unknown>): A
 }
 
 /** Mount the plugin over a fake agent registry and report what it installed. */
-async function mount(settings: RoleConfigSettings): Promise<{
+async function mount(settings: RoleConfigSettings, editor?: unknown): Promise<{
   ctx: Context
   top: Agent
   child: Agent
@@ -43,6 +44,7 @@ async function mount(settings: RoleConfigSettings): Promise<{
   // The delegation tool registers through an injected child that waits for the
   // subagent seam; a deployment without it gets the catalog tool only.
   ctx.provide('subagents', { getProvider: () => undefined, resolveMaxDepth: () => 1 } as never)
+  if (editor !== undefined) ctx.provide('configEditor', editor as never)
   apply(ctx, liveConfig(settings))
   // Registrations land through injected children; let those fibers activate.
   await new Promise(resolve => setTimeout(resolve, 0))
@@ -125,6 +127,44 @@ describe('role-config plugin wiring', () => {
     await settle()
     expect(namesIn(ctx, top).filter(name => name === 'subagent')).toHaveLength(1)
     expect(ctx.logger).toBeDefined()
+  })
+
+  it('frees the official tool when the takeover is off', async () => {
+    const entry = {
+      options: {
+        id: 'preset-standard',
+        name: '@deepseek-ai/dsh-agent-preset',
+        config: {
+          id: 'standard',
+          plugins: [
+            { id: 'tool-subagent', name: OFFICIAL_TOOL_PACKAGE, disabled: true, config: { provider: 'spawn', toolName: 'subagent' } },
+          ],
+        },
+      },
+    }
+    const edits: unknown[] = []
+    const editor = {
+      entries: () => [entry],
+      edit: (_target: unknown, change: (current: Record<string, unknown>, inherited: Record<string, unknown>) => Record<string, unknown>) => {
+        edits.push(change({}, {}))
+        return Promise.resolve()
+      },
+    }
+    await mount(plainSettings({ ...ROLES, exposure: { listTool: true, sessionStart: false, delegateTool: false } }), editor)
+    await vi.waitFor(() => { expect(edits).toHaveLength(1) })
+    expect(edits[0]).toMatchObject({
+      id: 'standard',
+      plugins: [{ id: 'tool-subagent', name: OFFICIAL_TOOL_PACKAGE, config: { provider: 'spawn', toolName: 'subagent' } }],
+    })
+  })
+
+  it('leaves the composition alone while the takeover is on', async () => {
+    const entries: unknown[] = [{ options: { id: 'preset-standard', config: { id: 'standard', plugins: [] } } }]
+    let edits = 0
+    const editor = { entries: () => entries, edit: () => { edits += 1; return Promise.resolve() } }
+    await mount(plainSettings(ROLES), editor)
+    await settle()
+    expect(edits).toBe(0)
   })
 
   it('honours the exposure switches', async () => {

@@ -81,6 +81,12 @@ export interface RoleConfigPageFace {
   edit: (update: (draft: RoleConfigSettings) => RoleConfigSettings) => void
   /** Persist the staged draft. */
   save: () => void
+  /**
+   * Stop the routing takeover and hand the delegation tool back to the
+   * official plugin: stage the switch off and save in one click, so the Host
+   * can re-enable an official row the takeover had disabled.
+   */
+  restoreOfficialTool: () => void
   /** Drop the staged draft. */
   discard: () => void
 }
@@ -166,6 +172,7 @@ export class RoleConfigPageController {
       retryCatalog: () => { void this.loadCatalog() },
       edit: (update) => { this.edit(update) },
       save: () => { void this.save() },
+      restoreOfficialTool: () => { this.restoreOfficialTool() },
       discard: () => { this.discard() },
     }
   }
@@ -180,8 +187,11 @@ export class RoleConfigPageController {
       const response = await this.ctx.remote.session.modelCatalog()
       if (this.disposed || generation !== this.catalogGeneration) return
       if (!response.ok) throw new Error(`${response.error.code}: ${response.error.message}`)
-      this.catalogGroups = response.value.groups
-      this.catalogPartial = response.value.groups.some(group => (group as { error?: unknown }).error !== undefined)
+      // A payload without a group list is an empty catalog, never a poisoned
+      // one: a later projection reads these fields while rendering.
+      const groups = response.value.groups ?? []
+      this.catalogGroups = groups
+      this.catalogPartial = groups.some(group => (group as { error?: unknown }).error !== undefined)
       this.catalogStatus = 'ready'
     } catch {
       if (this.disposed || generation !== this.catalogGeneration) return
@@ -208,6 +218,17 @@ export class RoleConfigPageController {
     if (snapshot.value === undefined) return
     this.draft = update(cloneSettings(this.staged()))
     this.publish()
+  }
+
+  /**
+   * One click that ends the takeover: the staged switch goes off and the saved
+   * revision follows immediately, which is the signal the Host acts on. Staging
+   * and saving in the same tick is safe because `save()` reads the staged
+   * draft, and it keeps the button honest about being a single action.
+   */
+  private restoreOfficialTool(): void {
+    this.edit(draft => ({ ...draft, exposure: { ...draft.exposure, delegateTool: false } }))
+    void this.save()
   }
 
   private discard(): void {

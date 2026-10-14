@@ -21,8 +21,7 @@
     "./locale/zh.json": "./locale/zh.json"
   },
   "files": [
-    "lib/index.js",
-    "lib/client.js",
+    "lib/**/*.js",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
     "locale/*.json",

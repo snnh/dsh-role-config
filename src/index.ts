@@ -20,6 +20,7 @@ import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { LlmRuntime } from '@deepseek-ai/dsh-llm'
+import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { applyBindings } from './bindings.ts'
 import { CapabilityDirectory } from './capabilities.ts'
 import { FailoverRegistry, installFailover } from './failover.ts'
@@ -182,7 +183,17 @@ export function apply(ctx: Context, config: Config): void {
         registerListRolesTool(scope, source)
       })
     }
-    if (settings.exposure.delegateTool && collisions.length === 0) {
+    // A per-agent tool needs a per-agent scope. An application that creates an
+    // agent without one (some fixtures and embedding apps do) has nowhere for
+    // the routed name to register; note it on the plugin's own log and leave
+    // the agent alone rather than reporting a shape the operator cannot fix.
+    if (settings.exposure.delegateTool && collisions.length === 0 && scopeOf(agent.ctx) === undefined) {
+      ctx.logger.info(
+        'role-config: agent %s has no scoped context; the delegation tool stays unregistered for it',
+        agent.id,
+      )
+    }
+    if (settings.exposure.delegateTool && collisions.length === 0 && scopeOf(agent.ctx) !== undefined) {
       entry.delegate = agent.ctx.inject(['tools', 'subagents'], (scope) => {
         // Registration waits for the agent's composition to settle. Two
         // outcomes matter, and the wait is what separates them:

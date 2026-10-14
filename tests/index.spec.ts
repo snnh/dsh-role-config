@@ -167,6 +167,23 @@ describe('role-config plugin wiring', () => {
     expect(edits).toBe(0)
   })
 
+  it('leaves an agent without a scope alone, and says so only on the plugin log', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    const unscoped = { id: 'unscoped-1', ctx, session: { header: { origin: undefined, delegationDepth: 0 } } } as unknown as Agent
+    ctx.provide('agents', { list: () => [unscoped], get: () => undefined } as never)
+    ctx.provide('subagents', { getProvider: () => undefined, resolveMaxDepth: () => 1 } as never)
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    apply(ctx, liveConfig(plainSettings(ROLES)))
+    await settle()
+    // No per-agent scope means nowhere for `subagent` to register: the agent
+    // keeps the official tool, and no operator-facing diagnostic is printed.
+    expect(namesIn(ctx, unscoped)).toEqual(['list_model_roles'])
+    expect(consoleWarn).not.toHaveBeenCalled()
+    consoleWarn.mockRestore()
+  })
+
   it('honours the exposure switches', async () => {
     const { ctx, top, child } = await mount(plainSettings({
       ...ROLES,

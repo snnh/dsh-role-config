@@ -11,7 +11,7 @@
  * A role never exposes its members to the model. Only the role's name and
  * description reach the model; the chain and its rules stay Host-side.
  *
- * @module dsh-role-config/settings
+ * @module @snnh/dsh-role-config/settings
  */
 import z from '@deepseek-ai/schemastery';
 /** One exact provider/model route. */

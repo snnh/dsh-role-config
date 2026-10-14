@@ -21,7 +21,7 @@
  * configuration editor cannot write it; such a row is left alone and the
  * operator's own patch keeps owning it.
  *
- * @module dsh-role-config/restore
+ * @module @snnh/dsh-role-config/restore
  */
 import type { Context } from '@deepseek-ai/cordis';
 /**

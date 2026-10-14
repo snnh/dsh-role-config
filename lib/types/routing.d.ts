@@ -8,7 +8,7 @@
  * Selecting a member with AI routing happens in the Host, on top of these
  * primitives.
  *
- * @module dsh-role-config/routing
+ * @module @snnh/dsh-role-config/routing
  */
 import type { PoolModel, Role, RoleConfigSettings, RouteCondition, RouteMember, RouteRule } from './settings.ts';
 /** Where one routing decision came from. */

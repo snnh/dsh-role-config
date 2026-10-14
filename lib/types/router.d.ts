@@ -10,7 +10,7 @@
  * (the chain head serves instead), and it is bounded by its own deadline
  * fused with the caller's cancellation.
  *
- * @module dsh-role-config/router
+ * @module @snnh/dsh-role-config/router
  */
 import type { LlmRuntime } from '@deepseek-ai/dsh-llm';
 import type { RouteMember, Routing } from './settings.ts';

@@ -7,7 +7,7 @@
  * and `save()` sends the six top-level fields as one revision-fenced
  * mutation, so a document changed elsewhere is never silently overwritten.
  *
- * @module dsh-role-config/client/controller
+ * @module @snnh/dsh-role-config/client/controller
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'

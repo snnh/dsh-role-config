@@ -12,7 +12,7 @@
  * A role's members never reach the model: the listing carries names and
  * descriptions only, and routing stays Host-side.
  *
- * @module dsh-role-config
+ * @module @snnh/dsh-role-config
  */
 
 import type { Context, Volatile } from '@deepseek-ai/cordis'
@@ -159,7 +159,7 @@ export function apply(ctx: Context, config: Config): void {
   // The shadow needs an outer-scope official tool; a colliding row is reported
   // once, and the official tool keeps serving for this session.
   const collisions = findOfficialModelSelectionRows(ctx, settingsSnapshot(config).delegate.toolName)
-  if (collisions.length > 0) {
+  if (collisions.length > 0 && settingsSnapshot(config).exposure.delegateTool) {
     warn(collisionAdvice(collisions, settingsSnapshot(config).delegate.toolName))
   }
 

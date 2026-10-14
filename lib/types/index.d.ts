@@ -12,7 +12,7 @@
  * A role's members never reach the model: the listing carries names and
  * descriptions only, and routing stays Host-side.
  *
- * @module dsh-role-config
+ * @module @snnh/dsh-role-config
  */
 import type { Context, Volatile } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';

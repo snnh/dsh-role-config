@@ -42,7 +42,9 @@ describe('role-config settings', () => {
     expect(settings.bindings.get()).toEqual({
       compact: { kind: 'off' }, sessionTitle: { kind: 'off' }, delegateDefault: { kind: 'off' },
     })
-    expect(settings.exposure.get()).toEqual({ listTool: true, sessionStart: false, delegateTool: true })
+    // A deployment that states nothing gets no model-visible surface: the
+    // plugin registers its tools only once an operator asks for them.
+    expect(settings.exposure.get()).toEqual({ listTool: false, sessionStart: false, delegateTool: false })
     expect(settings.routing.get()).toEqual({
       fallback: true, aiEnabled: false, aiProvider: undefined, aiModel: undefined, aiTimeoutMs: 8000,
     })

@@ -2,7 +2,7 @@
 description: "Role presets and a model pool for dsh: the model delegates to a role, the operator's rules pick the model, and a failure walks the role's chain."
 ---
 
-# dsh-role-config
+# @snnh/dsh-role-config
 
 English | [中文](README.zh.md)
 
@@ -28,17 +28,36 @@ A dsh bundle that gives delegation two ways in and one decision layer:
 ## Install
 
 ```sh
-dsh plugin --profile <profile> add github:snnh/dsh-role-config
+dsh plugin --profile <profile> add @snnh/dsh-role-config
 ```
 
-The built halves (`lib/index.js`, `lib/client.js`, and their declarations) are
-committed, so a git install needs no build script and no `allowBuilds`
-permission; install it and enable the bundle. Rebuild them with
+The package is published to npm, so the line above needs no build step. A git
+install (`github:snnh/dsh-role-config`) works too: the built halves
+(`lib/index.js`, `lib/client.js`, and their declarations) are committed, so it
+needs no build script and no `allowBuilds` permission. Rebuild them with
 `npm run build` after changing `src/`.
+
+## Nothing is on until you turn it on
+
+A fresh mount registers no tool and changes no agent: `exposure.delegateTool`
+and `exposure.listTool` both default to `false`, so the official delegation
+tool keeps serving until an operator asks for the routed one. Turning both on
+is the whole opt-in:
+
+```yaml
+- id: role-config
+  config:
+    exposure:
+      delegateTool: true
+      listTool: true
+    pool:
+      - provider: deepseek-official
+        model: deepseek-chat
+```
 
 ## The one prerequisite
 
-This plugin registers its delegation tool under the official `subagent` name.
+With `exposure.delegateTool: true` this plugin registers its delegation tool under the official `subagent` name.
 While the plugin is enabled that routed tool is what the agent sees; disable
 the plugin and the official tool serves again. Shadowing needs the official
 tool one scope further out than the agent, so the official `tool-subagent` row

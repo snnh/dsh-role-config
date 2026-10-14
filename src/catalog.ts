@@ -6,7 +6,7 @@
  * What it never sees here: a role's chain, its rules, or which model a role
  * would route to.
  *
- * @module dsh-role-config/catalog
+ * @module @snnh/dsh-role-config/catalog
  */
 
 import type { RoleConfigProblem, RoleConfigSettings } from './settings.ts'

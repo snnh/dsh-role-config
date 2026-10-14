@@ -11,7 +11,7 @@
  * (so a cycle cannot form), and it never swallows the final failure: when the
  * chain is exhausted the original error is what the parent sees.
  *
- * @module dsh-role-config/failover
+ * @module @snnh/dsh-role-config/failover
  */
 import type { Context } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';

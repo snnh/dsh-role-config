@@ -7,7 +7,7 @@
  * registers that namespace itself, so the page exists exactly when its
  * settings do.
  *
- * @module dsh-role-config/client
+ * @module @snnh/dsh-role-config/client
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis';
 import { type RoleConfigKey } from './locales.ts';

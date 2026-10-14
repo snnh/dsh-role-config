@@ -9,4 +9,4 @@
 # official tool is registered per agent instead (see README).
 - insert:
     - id: role-config
-      name: dsh-role-config
+      name: @snnh/dsh-role-config

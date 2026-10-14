@@ -11,7 +11,7 @@
  * A role never exposes its members to the model. Only the role's name and
  * description reach the model; the chain and its rules stay Host-side.
  *
- * @module dsh-role-config/settings
+ * @module @snnh/dsh-role-config/settings
  */
 
 import z from '@deepseek-ai/schemastery'
@@ -201,9 +201,9 @@ export const Config = z.object({
     delegateDefault: bindingTarget.default({ kind: 'off' }),
   }).default({}).volatile(),
   exposure: z.object({
-    listTool: z.boolean().default(true),
+    listTool: z.boolean().default(false),
     sessionStart: z.boolean().default(false),
-    delegateTool: z.boolean().default(true),
+    delegateTool: z.boolean().default(false),
   }).default({}).volatile(),
   routing: z.object({
     fallback: z.boolean().default(true),

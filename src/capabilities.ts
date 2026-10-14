@@ -10,7 +10,7 @@
  * announces `llm/adapters-updated`, so a newly configured provider is visible
  * without restarting the Host.
  *
- * @module dsh-role-config/capabilities
+ * @module @snnh/dsh-role-config/capabilities
  */
 
 import type { LlmRuntime } from '@deepseek-ai/dsh-llm'

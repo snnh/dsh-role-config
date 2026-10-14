@@ -11,7 +11,7 @@
  * 3. neither — the configured default role, or plain inheritance from the
  *    parent agent, which is what the official tool does.
  *
- * @module dsh-role-config/plan
+ * @module @snnh/dsh-role-config/plan
  */
 
 import type { LlmRuntime } from '@deepseek-ai/dsh-llm'

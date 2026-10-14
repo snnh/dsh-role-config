@@ -7,7 +7,7 @@
  * registers that namespace itself, so the page exists exactly when its
  * settings do.
  *
- * @module dsh-role-config/client
+ * @module @snnh/dsh-role-config/client
  */
 
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).

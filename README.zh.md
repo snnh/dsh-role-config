@@ -2,7 +2,7 @@
 description: "dsh 的角色预设与模型池：模型只选角色，由用户的规则决定用哪个模型，失败按角色链逐级回退。"
 ---
 
-# dsh-role-config
+# @snnh/dsh-role-config
 
 [English](README.md) | 中文
 
@@ -17,14 +17,29 @@ description: "dsh 的角色预设与模型池：模型只选角色，由用户�
 ## 安装
 
 ```sh
-dsh plugin --profile <profile> add github:snnh/dsh-role-config
+dsh plugin --profile <profile> add @snnh/dsh-role-config
 ```
 
-构建产物（`lib/index.js`、`lib/client.js` 及其声明）随仓库提交，因此 git 安装**不需要**构建脚本，也不需要 `allowBuilds` 放行；装好启用 bundle 即可。改动 `src/` 后用 `npm run build` 重新构建。
+包已发布到 npm，上面的命令不需要构建步骤。git 安装（`github:snnh/dsh-role-config`）同样可用：构建产物（`lib/index.js`、`lib/client.js` 及其声明）随仓库提交，因此**不需要**构建脚本，也不需要 `allowBuilds` 放行。改动 `src/` 后用 `npm run build` 重新构建。
+
+## 默认什么都不开
+
+刚挂载时插件不注册任何工具，也不改动任何 agent：`exposure.delegateTool` 与 `exposure.listTool` 的缺省值都是 `false`，官方委派工具照常服务，直到操作者主动点名要可路由的那一条。打开这两个开关就是全部的开启动作：
+
+```yaml
+- id: role-config
+  config:
+    exposure:
+      delegateTool: true
+      listTool: true
+    pool:
+      - provider: deepseek-official
+        model: deepseek-chat
+```
 
 ## 唯一的前置条件
 
-本插件用官方 `subagent` 同名注册委派工具。插件启用时，agent 看到的就是这条可路由的工具；停用插件，官方工具随即恢复服务。遮蔽要求官方工具比 agent 更靠外一层，因此官方 `tool-subagent` 行必须带 `modelSelectionSettings: false`：
+开启 `exposure.delegateTool: true` 后，本插件用官方 `subagent` 同名注册委派工具。插件启用时，agent 看到的就是这条可路由的工具；停用插件，官方工具随即恢复服务。遮蔽要求官方工具比 agent 更靠外一层，因此官方 `tool-subagent` 行必须带 `modelSelectionSettings: false`：
 
 ```yaml
 - id: tool-subagent

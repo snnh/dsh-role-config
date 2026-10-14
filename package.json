@@ -1,9 +1,12 @@
 {
-  "name": "dsh-role-config",
+  "name": "@snnh/dsh-role-config",
   "version": "0.1.0",
   "description": "Role presets and a model pool for dsh: role-routed delegation with capability conditions and priority fallback",
   "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {

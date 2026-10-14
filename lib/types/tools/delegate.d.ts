@@ -12,7 +12,7 @@
  * `ctx.subagents`, one-shot background through `ctx.jobs`, and the child's
  * final output returned to the caller.
  *
- * @module dsh-role-config/tools/delegate
+ * @module @snnh/dsh-role-config/tools/delegate
  */
 import type { Context } from '@deepseek-ai/cordis';
 import type { FailoverRegistry } from '../failover.ts';

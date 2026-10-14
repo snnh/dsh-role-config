@@ -1,9 +1,15 @@
 {
   "name": "@snnh/dsh-role-config",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Role presets and a model pool for dsh: role-routed delegation with capability conditions and priority fallback",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snnh/dsh-role-config.git"
+  },
+  "homepage": "https://github.com/snnh/dsh-role-config#readme",
+  "bugs": "https://github.com/snnh/dsh-role-config/issues",
   "publishConfig": {
     "access": "public"
   },
